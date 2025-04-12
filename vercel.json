@@ -1,44 +1,7 @@
 {
   "version": 2,
   "public": false,
-  "builds": [
-    {
-      "src": "package.json",
-      "use": "@vercel/next"
-    }
-  ],
-  "routes": [
-    {
-      "src": "/api/public/register",
-      "dest": "/api/public/register",
-      "methods": ["GET", "POST", "OPTIONS"],
-      "headers": {
-        "Access-Control-Allow-Origin": "*",
-        "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
-        "Access-Control-Allow-Headers": "Content-Type, Authorization"
-      }
-    },
-    {
-      "src": "/api/auth/register",
-      "dest": "/api/auth/register"
-    },
-    {
-      "src": "/api/auth/(.*)",
-      "dest": "/api/auth/$1"
-    },
-    {
-      "src": "/login",
-      "dest": "/login"
-    },
-    {
-      "src": "/register",
-      "dest": "/register"
-    },
-    {
-      "src": "/(.*)",
-      "dest": "/$1"
-    }
-  ],
+  "buildCommand": "npm run build",
   "headers": [
     {
       "source": "/api/public/register",
@@ -74,5 +37,13 @@
         }
       ]
     }
+  ],
+  "rewrites": [
+    { "source": "/api/public/register", "destination": "/api/public/register" },
+    { "source": "/api/auth/register", "destination": "/api/auth/register" },
+    { "source": "/api/auth/(.*)", "destination": "/api/auth/$1" },
+    { "source": "/login", "destination": "/login" },
+    { "source": "/register", "destination": "/register" },
+    { "source": "/(.*)", "destination": "/$1" }
   ]
 } 
