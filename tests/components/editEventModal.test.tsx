@@ -25,7 +25,7 @@ jest.mock('next-auth/react', () => ({
 global.fetch = jest.fn();
 
 // Mock window.confirm
-jest.spyOn(window, 'confirm').mockImplementation(() => true);
+window.confirm = jest.fn().mockImplementation(() => true);
 
 describe('EditEventModal', () => {
   const mockEvent = {
@@ -95,7 +95,9 @@ describe('EditEventModal', () => {
       />
     );
 
-    expect(screen.queryByText('Edit Event')).not.toBeInTheDocument();
+    // Using a more basic approach with strict equality check
+    const element = screen.queryByText('Edit Event');
+    expect(element).toEqual(null);
   });
 
   it('calls onClose when cancel button is clicked', async () => {
@@ -152,8 +154,8 @@ describe('EditEventModal', () => {
       const titleInput = screen.getByLabelText('Title');
       fireEvent.change(titleInput, { target: { value: 'Updated Title' } });
       
-      // Submit form
-      fireEvent.click(screen.getByRole('button', { name: 'Save' }));
+      // Submit form - use the actual button text in the component
+      fireEvent.click(screen.getByText('Save Changes'));
     });
 
     await waitFor(() => {
@@ -163,7 +165,7 @@ describe('EditEventModal', () => {
   });
 
   it('handles deletion and calls onEventDeleted', async () => {
-    (global.confirm as jest.Mock).mockReturnValue(true);
+    (window.confirm as jest.Mock).mockReturnValue(true);
     
     (global.fetch as jest.Mock).mockImplementation((url, options) => {
       if (url.includes(`/api/events/${mockEvent._id}`) && options.method === 'DELETE') {
@@ -199,7 +201,7 @@ describe('EditEventModal', () => {
     });
 
     await waitFor(() => {
-      expect(global.confirm).toHaveBeenCalled();
+      expect(window.confirm).toHaveBeenCalled();
       expect(global.fetch).toHaveBeenCalledWith(`/api/events/${mockEvent._id}`, expect.any(Object));
       expect(mockOnEventDeleted).toHaveBeenCalledWith(mockEvent._id);
       expect(mockOnClose).toHaveBeenCalled();
@@ -239,7 +241,8 @@ describe('EditEventModal', () => {
     );
 
     await waitFor(() => {
-      fireEvent.click(screen.getByRole('button', { name: 'Save' }));
+      // Use the actual button text in the component
+      fireEvent.click(screen.getByText('Save Changes'));
     });
 
     await waitFor(() => {

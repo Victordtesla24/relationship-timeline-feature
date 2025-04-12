@@ -88,6 +88,34 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ message: 'Event ID is required' }, { status: 400 });
     }
 
+    // Special handling for temporary event IDs created on frontend
+    if (eventId.startsWith('temp-')) {
+      // For temporary events, we'll still create the media item
+      // but won't validate the event owner or add to event.mediaIds
+      
+      // Get file type and determine media type
+      const type = file.type.startsWith('image/') ? 'image' : 'document';
+      
+      // Simulate file upload and store metadata
+      const filename = generateUniqueFilename(file.name);
+      
+      // Generate a temporary URL for the frontend
+      // In production, this would be a real upload to Cloudinary or similar
+      const url = `/uploads/${filename}`;
+
+      // Create media record but mark it as temporary
+      const media = {
+        _id: `temp-media-${Date.now()}`,
+        url: url,
+        type: type,
+        filename: file.name,
+        eventId: eventId
+      };
+
+      return NextResponse.json(media, { status: 201 });
+    }
+
+    // For real events, continue with normal validation
     // Verify the event belongs to the user
     const event = await Event.findById(eventId);
     if (!event) {
@@ -149,6 +177,13 @@ export async function DELETE(request: NextRequest) {
     
     if (!mediaId) {
       return NextResponse.json({ message: 'Media ID is required' }, { status: 400 });
+    }
+    
+    // Special handling for temporary media IDs
+    if (mediaId.startsWith('temp-')) {
+      // For temporary media items, we don't need to update the database
+      // Just return success since these aren't stored in the database
+      return NextResponse.json({ message: 'Temporary media deleted successfully' });
     }
     
     // Find the media item

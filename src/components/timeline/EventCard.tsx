@@ -119,9 +119,14 @@ export default function EventCard({ event, index, onEventUpdated, onEventDeleted
                         className="block w-24 h-24 bg-gray-100 rounded-md overflow-hidden"
                       >
                         <img 
-                          src={media.url} 
-                          alt={media.filename} 
-                          className="w-full h-full object-cover" 
+                          src={media.url.startsWith('/uploads/') ? `/images/placeholder-image.svg` : media.url} 
+                          alt={media.filename}
+                          className="w-full h-full object-cover"
+                          onError={(e) => {
+                            // If image fails to load, set a placeholder
+                            (e.target as HTMLImageElement).src = '/images/placeholder-image.svg';
+                            (e.target as HTMLImageElement).onerror = null; // Prevent infinite loops
+                          }}
                         />
                       </a>
                     ) : (

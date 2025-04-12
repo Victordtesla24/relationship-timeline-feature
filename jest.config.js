@@ -12,6 +12,10 @@ const customJestConfig = {
     '^.+\\.(js|jsx|ts|tsx)$': ['babel-jest', { presets: ['next/babel'] }],
   },
   testPathIgnorePatterns: ['/node_modules/', '/.next/'],
+  // Transform more node_modules that use ESM
+  transformIgnorePatterns: [
+    '/node_modules/(?!(.pnpm/)?(jose|openid-client|uuid|nanoid|react-dnd-html5-backend|next-auth|@next-auth|superjson|date-fns|@date-io))',
+  ],
   moduleNameMapper: {
     '^@/(.*)$': '<rootDir>/src/$1',
   },

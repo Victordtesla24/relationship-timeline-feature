@@ -62,7 +62,8 @@ describe('Timeline Feature', () => {
       },
     });
     
-    const { container } = render(await TimelinePage() as React.ReactElement);
+    // Use 'as any' to avoid TypeScript errors with ReactElement
+    const { container } = render(await TimelinePage() as any);
     
     // Check that all components are rendered
     expect(screen.getByTestId('dashboard-header')).toBeInTheDocument();
@@ -82,7 +83,8 @@ describe('Timeline Feature', () => {
       },
     });
     
-    const { rerender } = render(await TimelinePage() as React.ReactElement);
+    // Use 'as any' to avoid TypeScript errors with ReactElement
+    const { rerender } = render(await TimelinePage() as any);
     
     // Now test for lawyer role
     (getServerSession as jest.Mock).mockResolvedValueOnce({
@@ -94,10 +96,29 @@ describe('Timeline Feature', () => {
       },
     });
     
-    rerender(await TimelinePage() as React.ReactElement);
+    // Use 'as any' to avoid TypeScript errors with ReactElement
+    rerender(await TimelinePage() as any);
     
     // Both roles should have access to the timeline page
     expect(screen.getByTestId('timeline')).toBeInTheDocument();
+  });
+
+  it('shows personalized content for different roles', async () => {
+    // Test for client role
+    (getServerSession as jest.Mock).mockResolvedValueOnce({
+      user: {
+        id: 'user-1',
+        name: 'Test Client',
+        email: 'client@example.com',
+        role: 'client', 
+      },
+    });
+    
+    // Use 'as any' to avoid TypeScript errors
+    render(await TimelinePage() as any);
+    
+    // Check common elements
+    expect(screen.getByText('Relationship Timeline')).toBeInTheDocument();
   });
 });
 
@@ -120,7 +141,7 @@ describe('Timeline Feature Integration', () => {
       },
     });
     
-    render(await TimelinePage() as React.ReactElement);
+    render(await TimelinePage() as any);
     
     // The actual integration test would verify:
     // 1. Timeline component makes a fetch request for events

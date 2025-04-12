@@ -38,7 +38,9 @@ describe('AddEventModal Component', () => {
       />
     );
     
-    expect(screen.queryByText('Add New Event')).not.toBeInTheDocument();
+    // Use queryByText which returns null when element doesn't exist
+    const modalTitle = screen.queryByText('Add New Event');
+    expect(modalTitle).toEqual(null);
   });
   
   it('calls onClose when cancel button is clicked', () => {

@@ -396,15 +396,18 @@ declare module '@testing-library/react' {
     getByRole(role: string, options?: any): any;
     getByTestId(id: string): any;
     getByPlaceholderText(text: string | RegExp): any;
+    getByAltText(alt: string | RegExp): any;
     getAllByText(text: string | RegExp): any[];
     getAllByRole(role: string, options?: any): any[];
     getAllByLabelText(label: string | RegExp): any[];
     getAllByPlaceholderText(text: string | RegExp): any[];
     getAllByTestId(regex: RegExp): any[];
+    getAllByAltText(alt: string | RegExp): any[];
     queryByText(text: string | RegExp): any;
     queryByTestId(id: string): any;
     queryByRole(role: string, options?: any): any;
     queryByLabelText(label: string | RegExp): any;
+    queryByAltText(alt: string | RegExp): any;
     queryAllByText(text: string | RegExp): any[];
   };
   export const fireEvent: {
@@ -435,17 +438,25 @@ declare global {
       toBe(expected: any): R;
       toBeInTheDocument(): R;
       toHaveClass(className: string): R;
+      toHaveAttribute(attr: string, value?: string): R;
       toHaveTextContent(text: string): R;
       toEqual(expected: any): R;
       toBeGreaterThan(expected: number): R;
       toBeLessThan(expected: number): R;
+      toBeChecked(): R;
+      toBeDisabled(): R;
+      toBeEnabled(): R;
       not: {
         toBeNull(): R;
         toBeInTheDocument(): R;
         toHaveClass(className: string): R;
+        toHaveAttribute(attr: string, value?: string): R;
         toHaveBeenCalled(): void;
         toEqual(expected: any): R;
         toBe(expected: any): R;
+        toBeChecked(): R;
+        toBeDisabled(): R;
+        toBeEnabled(): R;
       };
     }
   }
@@ -460,21 +471,29 @@ declare global {
     toBeVisible(): void;
     toHaveClass(className: string): void;
     toHaveValue(value: string): void;
+    toHaveAttribute(attr: string, value?: string): void;
     toBe(expected: any): void;
     toEqual(expected: any): void;
     toContain(expected: any): void;
     toBeGreaterThan(expected: number): void;
     toBeLessThan(expected: number): void;
     toHaveTextContent(text: string): void;
+    toBeChecked(): void;
+    toBeDisabled(): void;
+    toBeEnabled(): void;
     rejects: {
       toThrow(message?: string): void;
     };
     not: {
       toBeInTheDocument(): void;
       toHaveClass(className: string): void;
+      toHaveAttribute(attr: string, value?: string): void;
       toHaveBeenCalled(): void;
       toBe(expected: any): void;
       toEqual(expected: any): void;
+      toBeChecked(): void;
+      toBeDisabled(): void;
+      toBeEnabled(): void;
     };
     toHaveBeenCalled(): void;
     toHaveBeenCalledTimes(count: number): void;
@@ -487,6 +506,16 @@ declare global {
     function any(constructor: any): any;
   }
   
+  interface URL {
+    createObjectURL(blob: Blob): string;
+    revokeObjectURL(url: string): void;
+  }
+  
+  const URL: {
+    createObjectURL(blob: Blob): string;
+    revokeObjectURL(url: string): void;
+  };
+  
   const global: {
     fetch: jest.Mock;
     TextEncoder: any;
@@ -494,6 +523,7 @@ declare global {
     Response: any;
     Request: any;
     Headers: any;
+    URL: typeof URL;
   };
 }
 

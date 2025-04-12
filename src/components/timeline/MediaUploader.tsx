@@ -2,6 +2,10 @@
 
 import React from 'react';
 import { useSession } from 'next-auth/react';
+import { useStateCompat, useRefCompat } from '@/utils/react-compat';
+
+// Type assertion to work around React type conflicts
+const ReactCompat = React as any;
 
 interface Media {
   _id: string;
@@ -24,11 +28,10 @@ export default function MediaUploader({
   onMediaDeleted
 }: MediaUploaderProps) {
   const { data: session } = useSession();
-  // @ts-ignore - using useState directly from React object due to import errors
-  const [isUploading, setIsUploading] = React.useState(false);
-  // @ts-ignore - using useState directly from React object due to import errors
-  const [error, setError] = React.useState<string | null>(null);
-  const fileInputRef = React.useRef<HTMLInputElement>(null);
+  // Use compatibility hooks to avoid TypeScript errors
+  const [isUploading, setIsUploading] = useStateCompat(false);
+  const [error, setError] = useStateCompat<string | null>(null);
+  const fileInputRef = useRefCompat<HTMLInputElement>(null);
 
   const handleFileChange = async (e: any) => {
     if (!e.target.files || e.target.files.length === 0) return;

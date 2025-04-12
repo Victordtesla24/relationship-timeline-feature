@@ -48,6 +48,9 @@ export default function AddEventModal({ isOpen, onClose, onEventAdded }: AddEven
   
   // @ts-ignore - using useState directly from React object due to import errors
   const [mediaItems, setMediaItems] = React.useState<Media[]>([]);
+  
+  // @ts-ignore - using useState directly from React object due to import errors
+  const [tempEventId, setTempEventId] = React.useState<string>(`temp-${Date.now()}`);
 
   const handleChange = (e: any) => {
     const { name, value } = e.target;
@@ -76,11 +79,21 @@ export default function AddEventModal({ isOpen, onClose, onEventAdded }: AddEven
       })
       .then(newEvent => {
         setNewEventId(newEvent._id);
-        if (onEventAdded) {
-          onEventAdded(newEvent);
-        }
-        // Only close the modal if there are no media items to upload
-        if (mediaItems.length === 0) {
+        
+        // If we have temporary media items, attach them to the real event
+        if (mediaItems.length > 0) {
+          // Update the frontend immediately
+          if (onEventAdded) {
+            // Need to give it the new event ID for reference
+            onEventAdded({
+              ...newEvent,
+              mediaIds: mediaItems.map(m => m._id)
+            });
+          }
+        } else {
+          if (onEventAdded) {
+            onEventAdded(newEvent);
+          }
           onClose();
         }
       })
@@ -109,6 +122,7 @@ export default function AddEventModal({ isOpen, onClose, onEventAdded }: AddEven
     });
     setNewEventId(null);
     setMediaItems([]);
+    setTempEventId(`temp-${Date.now()}`);
     onClose();
   };
 
@@ -172,17 +186,14 @@ export default function AddEventModal({ isOpen, onClose, onEventAdded }: AddEven
               />
             </div>
             
-            {newEventId ? (
-              // Show media uploader once the event is created
-              <div className="mb-4">
-                <MediaUploader
-                  eventId={newEventId}
-                  mediaItems={mediaItems}
-                  onMediaAdded={handleMediaAdded}
-                  onMediaDeleted={handleMediaDeleted}
-                />
-              </div>
-            ) : null}
+            <div className="mb-4">
+              <MediaUploader
+                eventId={newEventId || tempEventId}
+                mediaItems={mediaItems}
+                onMediaAdded={handleMediaAdded}
+                onMediaDeleted={handleMediaDeleted}
+              />
+            </div>
             
             <div className="flex justify-end space-x-3 mt-6">
               <button
@@ -193,23 +204,13 @@ export default function AddEventModal({ isOpen, onClose, onEventAdded }: AddEven
                 Cancel
               </button>
               
-              {!newEventId ? (
-                <button
-                  type="submit"
-                  disabled={isSubmitting}
-                  className="px-4 py-2 bg-primary-600 text-white rounded-md hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2 disabled:opacity-50"
-                >
-                  {isSubmitting ? 'Saving...' : 'Save Event'}
-                </button>
-              ) : (
-                <button
-                  type="button"
-                  onClick={handleClose}
-                  className="px-4 py-2 bg-primary-600 text-white rounded-md hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2"
-                >
-                  Done
-                </button>
-              )}
+              <button
+                type="submit"
+                disabled={isSubmitting}
+                className="px-4 py-2 bg-primary-600 text-white rounded-md hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2 disabled:opacity-50"
+              >
+                {isSubmitting ? 'Saving...' : 'Save Event'}
+              </button>
             </div>
           </form>
         </div>

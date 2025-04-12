@@ -162,6 +162,8 @@ describe('EventCard Component', () => {
     const closeButton = screen.getByRole('button', { name: /close/i });
     fireEvent.click(closeButton);
     
-    expect(screen.queryByTestId('edit-event-modal')).not.toBeInTheDocument();
+    // Use a more basic approach with equality check
+    const modalElement = screen.queryByTestId('edit-event-modal');
+    expect(modalElement).toEqual(null);
   });
 }); 
