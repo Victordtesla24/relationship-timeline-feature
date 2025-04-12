@@ -41,7 +41,7 @@ export function RegisterForm() {
       console.log('Submitting registration form', { ...data, password: '[REDACTED]' });
       
       // Use the public API endpoint that bypasses Vercel's protection
-      const apiUrl = new URL('/api/public/register', window.location.origin).toString();
+      const apiUrl = '/api/public/register';
       
       const response = await fetch(apiUrl, {
         method: 'POST',
@@ -55,38 +55,39 @@ export function RegisterForm() {
         body: JSON.stringify(data),
       });
 
+      // Always read the response as JSON, with error handling
+      let responseData;
       try {
-        // Get the response data for error details
-        const responseData = await response.json();
-        
-        if (!response.ok) {
-          console.error('Registration failed', responseData);
-          
-          if (response.status === 409) {
-            setError('Email already registered');
-          } else if (response.status === 400) {
-            setError('Invalid input data');
-          } else {
-            setError('Registration failed: ' + (responseData.message || 'Unknown error'));
-          }
-          
-          // Set detailed error for development
-          setDetailedError(responseData);
-          setIsLoading(false);
-          return;
-        }
-
-        console.log('Registration successful, redirecting to login');
-        router.push('/login?registered=true');
+        responseData = await response.json();
       } catch (jsonError) {
-        // If we can't parse the JSON, it might be a Vercel protection page
         console.error('Error parsing response:', jsonError);
-        setError('Registration service is temporarily unavailable. Please try again later.');
+        setError('Registration failed: Could not process server response');
         setIsLoading(false);
+        return;
       }
+      
+      if (!response.ok) {
+        console.error('Registration failed', responseData);
+        
+        if (response.status === 409) {
+          setError('Email already registered');
+        } else if (response.status === 400) {
+          setError('Invalid input data');
+        } else {
+          setError('Registration failed: ' + (responseData.message || 'Unknown error'));
+        }
+        
+        // Set detailed error for debugging
+        setDetailedError(responseData);
+        setIsLoading(false);
+        return;
+      }
+
+      console.log('Registration successful, redirecting to login');
+      router.push('/login?registered=true');
     } catch (err) {
       console.error('Error during registration:', err);
-      setError('An error occurred during registration');
+      setError('An error occurred during registration. Please try again.');
       setIsLoading(false);
     }
   };
@@ -97,10 +98,10 @@ export function RegisterForm() {
         <div className="bg-red-50 p-4 rounded">
           <p className="text-red-700">{error}</p>
           
-          {process.env.NODE_ENV === 'development' && detailedError && (
+          {process.env.NODE_ENV !== 'production' && detailedError && (
             <div className="mt-2 text-xs">
               <p className="font-semibold">Details:</p>
-              <pre className="whitespace-pre-wrap">{JSON.stringify(detailedError, null, 2)}</pre>
+              <pre className="whitespace-pre-wrap overflow-auto max-h-32">{JSON.stringify(detailedError, null, 2)}</pre>
             </div>
           )}
         </div>

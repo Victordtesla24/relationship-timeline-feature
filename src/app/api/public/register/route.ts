@@ -5,6 +5,9 @@ import { z } from 'zod';
 
 export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
+export const revalidate = 0;
+
+// Disable edge runtime to ensure compatibility with bcrypt
 export const preferredRegion = 'auto';
 
 // No authentication protection for this public endpoint
@@ -16,11 +19,22 @@ const registerSchema = z.object({
 });
 
 export async function POST(request: Request) {
-  // Add CORS headers to ensure browser requests work
+  // Add CORS headers
+  const origin = request.headers.get('origin') || '';
+  const allowedOrigins = [
+    'http://localhost:3000',
+    'https://relationship-timeline-feature-kqg270foa-vics-projects-31447d42.vercel.app',
+    'https://relationship-timeline-feature.vercel.app',
+    '*' // Allow any origin for public API
+  ];
+  
   const corsHeaders = {
-    'Access-Control-Allow-Origin': '*',
+    'Access-Control-Allow-Origin': '*', // Public endpoint - allow any origin
     'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
     'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+    'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate',
+    'Pragma': 'no-cache',
+    'Expires': '0',
   };
 
   // Handle OPTIONS request for CORS preflight
@@ -33,18 +47,18 @@ export async function POST(request: Request) {
   
   try {
     // Connect to database
-    console.log('Public API: Connecting to MongoDB...');
+    console.log('Connecting to MongoDB...');
     await dbConnect();
-    console.log('Public API: Connected to MongoDB successfully');
+    console.log('Connected to MongoDB successfully');
 
     // Parse and validate request body
     const body = await request.json();
-    console.log('Public API: Received registration request', { ...body, password: '[REDACTED]' });
+    console.log('Received registration request', { ...body, password: '[REDACTED]' });
     
     const validationResult = registerSchema.safeParse(body);
 
     if (!validationResult.success) {
-      console.log('Public API: Validation error:', validationResult.error.errors);
+      console.log('Validation error:', validationResult.error.errors);
       return NextResponse.json(
         { message: 'Invalid input data', errors: validationResult.error.errors },
         { 
@@ -57,10 +71,10 @@ export async function POST(request: Request) {
     const { name, email, password, role } = validationResult.data;
 
     // Check if user already exists
-    console.log('Public API: Checking if user exists with email:', email);
+    console.log('Checking if user exists with email:', email);
     const existingUser = await User.findOne({ email });
     if (existingUser) {
-      console.log('Public API: User already exists');
+      console.log('User already exists');
       return NextResponse.json(
         { message: 'User with this email already exists' },
         { 
@@ -70,15 +84,31 @@ export async function POST(request: Request) {
       );
     }
 
-    // Create new user
-    console.log('Public API: Creating new user...');
-    const user = await User.create({
-      name,
-      email,
-      password, // Will be hashed by the pre-save hook in the model
-      role,
-    });
-    console.log('Public API: User created successfully with ID:', user._id);
+    // Create new user with a try/catch specifically for the model create operation
+    console.log('Creating new user...');
+    let user;
+    try {
+      user = await User.create({
+        name,
+        email,
+        password, // Will be hashed by the pre-save hook in the model
+        role,
+      });
+      console.log('User created successfully with ID:', user._id);
+    } catch (modelError: any) {
+      console.error('Error creating user in database:', modelError);
+      return NextResponse.json(
+        { 
+          message: 'Database error during user creation', 
+          error: modelError.message,
+          code: modelError.code 
+        },
+        { 
+          status: 500,
+          headers: corsHeaders 
+        }
+      );
+    }
 
     return NextResponse.json(
       { message: 'User registered successfully', userId: user._id },
@@ -88,7 +118,7 @@ export async function POST(request: Request) {
       }
     );
   } catch (error: any) {
-    console.error('Public API: Registration error:', error);
+    console.error('Registration error:', error);
     
     // Provide more detailed error information
     const errorDetails = {
@@ -114,9 +144,12 @@ export async function OPTIONS(request: Request) {
   return new NextResponse(null, {
     status: 204,
     headers: {
-      'Access-Control-Allow-Origin': '*',
+      'Access-Control-Allow-Origin': '*', // Public endpoint - allow any origin
       'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
       'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+      'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate',
+      'Pragma': 'no-cache',
+      'Expires': '0',
     },
   });
 } 

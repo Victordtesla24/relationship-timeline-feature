@@ -104,104 +104,80 @@ Object.defineProperty(window, 'matchMedia', {
   })),
 });
 
-// Define the custom matchers using CommonJS format
-const customMatchers = {
-  toBeInTheDocument() {
+// Custom matchers for testing
+// Extend Jest's expect with custom matchers
+expect.extend({
+  toBeInTheDocument(received) {
+    const pass = received !== null && received !== undefined && 
+                 document.body.contains(received);
     return {
-      compare(element) {
-        const result = {};
-        const pass = document.body.contains(element);
-        result.pass = pass;
-        
-        if (pass) {
-          result.message = () => `Expected element not to be in the document, but it was found`;
-        } else {
-          result.message = () => `Expected element to be in the document, but it was not found`;
-        }
-        
-        return result;
-      }
+      pass,
+      message: () => pass ? 
+        `Expected element not to be in the document` :
+        `Expected element to be in the document, but it was not found`,
     };
   },
-  toBeVisible() {
+  toBeVisible(received) {
+    const isVisible = 
+      received !== null && 
+      received !== undefined && 
+      document.body.contains(received) &&
+      received.style.display !== 'none' && 
+      received.style.visibility !== 'hidden' &&
+      received.style.opacity !== '0';
+    
     return {
-      compare(element) {
-        const style = window.getComputedStyle(element);
-        const isVisible = style.display !== 'none' && 
-                         style.visibility !== 'hidden' && 
-                         style.opacity !== '0';
-        
-        return {
-          pass: isVisible,
-          message: () => isVisible ? 
-            `Expected element not to be visible, but it was` :
-            `Expected element to be visible, but it was not`,
-        };
-      }
+      pass: isVisible,
+      message: () => isVisible ? 
+        `Expected element not to be visible, but it was` :
+        `Expected element to be visible, but it was not`,
     };
   },
-  toHaveClass() {
+  toHaveClass(received, className) {
+    const hasClass = received.classList.contains(className);
+    
     return {
-      compare(element, className) {
-        const hasClass = element.classList.contains(className);
-        
-        return {
-          pass: hasClass,
-          message: () => hasClass ? 
-            `Expected element not to have class ${className}, but it did` :
-            `Expected element to have class ${className}, but it did not`,
-        };
-      }
+      pass: hasClass,
+      message: () => hasClass ? 
+        `Expected element not to have class ${className}, but it did` :
+        `Expected element to have class ${className}, but it did not`,
     };
   },
-  toHaveValue() {
+  toHaveValue(received, expectedValue) {
+    const value = received.value;
+    const hasValue = value === expectedValue;
+    
     return {
-      compare(element, expectedValue) {
-        const value = element.value;
-        const hasValue = value === expectedValue;
-        
-        return {
-          pass: hasValue,
-          message: () => hasValue ? 
-            `Expected element not to have value ${expectedValue}, but it did` :
-            `Expected element to have value ${expectedValue}, but it had value ${value}`,
-        };
-      }
+      pass: hasValue,
+      message: () => hasValue ? 
+        `Expected element not to have value ${expectedValue}, but it did` :
+        `Expected element to have value ${expectedValue}, but it had value ${value}`,
     };
   },
-  toHaveAttribute() {
-    return {
-      compare(element, attr, expectedValue) {
-        const hasAttr = element.hasAttribute(attr);
-        const value = element.getAttribute(attr);
-        const hasExpectedValue = expectedValue === undefined || value === expectedValue;
-        const pass = hasAttr && hasExpectedValue;
-        
-        let message;
-        if (pass) {
-          message = expectedValue === undefined ?
-            `Expected element not to have attribute ${attr}, but it did` :
-            `Expected element not to have attribute ${attr} with value ${expectedValue}, but it did`;
-        } else {
-          if (!hasAttr) {
-            message = `Expected element to have attribute ${attr}, but it did not`;
-          } else {
-            message = `Expected element to have attribute ${attr} with value ${expectedValue}, but it had value ${value}`;
-          }
-        }
-        
-        return {
-          pass,
-          message: () => message,
-        };
+  toHaveAttribute(received, attr, expectedValue) {
+    const hasAttr = received.hasAttribute(attr);
+    const value = received.getAttribute(attr);
+    const hasExpectedValue = expectedValue === undefined || value === expectedValue;
+    const pass = hasAttr && hasExpectedValue;
+    
+    let message;
+    if (pass) {
+      message = expectedValue === undefined ?
+        `Expected element not to have attribute ${attr}, but it did` :
+        `Expected element not to have attribute ${attr} with value ${expectedValue}, but it did`;
+    } else {
+      if (!hasAttr) {
+        message = `Expected element to have attribute ${attr}, but it did not`;
+      } else {
+        message = `Expected element to have attribute ${attr} with value ${expectedValue}, but it had value ${value}`;
       }
+    }
+    
+    return {
+      pass,
+      message: () => message,
     };
   }
-};
-
-// Add custom matchers to Jest
-beforeEach(() => {
-  jasmine.addMatchers(customMatchers);
 });
 
 // MongoDB Memory Server setup
