@@ -40,8 +40,8 @@ export function RegisterForm() {
     try {
       console.log('Submitting registration form', { ...data, password: '[REDACTED]' });
       
-      // Use the public API endpoint that bypasses Vercel's protection
-      const apiUrl = '/api/public/register';
+      // Use the Pages API endpoint that doesn't have Vercel's protection
+      const apiUrl = '/api/register';
       
       const response = await fetch(apiUrl, {
         method: 'POST',
