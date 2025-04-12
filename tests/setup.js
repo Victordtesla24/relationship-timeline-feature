@@ -1,100 +1,213 @@
 // Set environment variables for testing
-process.env.MONGODB_URI = 'mongodb://localhost:27017/test';
-process.env.CLOUDINARY_CLOUD_NAME = 'test-cloud-name';
-process.env.CLOUDINARY_API_KEY = 'test-api-key';
-process.env.CLOUDINARY_API_SECRET = 'test-api-secret';
-process.env.NEXTAUTH_URL = 'http://localhost:3000';
-process.env.NEXTAUTH_SECRET = 'test-secret';
+process.env.MONGODB_URI = "mongodb://localhost:27017/relationship_timeline_test"
+process.env.CLOUDINARY_CLOUD_NAME = "test-cloud"
+process.env.CLOUDINARY_API_KEY = "test-api-key" 
+process.env.CLOUDINARY_API_SECRET = "test-api-secret"
+process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME = "test-cloud"
+process.env.NEXTAUTH_URL = "http://localhost:3000"
+process.env.NEXTAUTH_SECRET = "supersecret"
+process.env.NODE_ENV = "test"
 
-// Import necessary modules
-const { TextEncoder, TextDecoder } = require('util');
-const { MongoMemoryServer } = require('mongodb-memory-server');
-const mongoose = require('mongoose');
+// Configure JSDOM for React 18 using CommonJS require
+const { JSDOM } = require('jsdom');
 
-// Import and configure Jest DOM matchers
-require('@testing-library/jest-dom');
-
-// Create DOM environment for React 18
-const JSDOM = require('jsdom').JSDOM;
-const jsdom = new JSDOM('<!doctype html><html lang="en"><body></body></html>', {
-  url: 'http://localhost:3000',
-  resources: 'usable',
-  runScripts: 'dangerously'
+// Setup DOM environment for React 18
+const jsdom = new JSDOM('<!doctype html><html><body></body></html>', {
+  url: 'http://localhost',
+  pretendToBeVisual: true,
 });
 
 global.window = jsdom.window;
 global.document = jsdom.window.document;
-global.navigator = jsdom.window.navigator;
-global.React = require('react');
-global.TextEncoder = TextEncoder;
-global.TextDecoder = TextDecoder;
+global.navigator = {
+  userAgent: 'node.js',
+};
+global.requestAnimationFrame = function (callback) {
+  return setTimeout(callback, 0);
+};
+global.cancelAnimationFrame = function (id) {
+  clearTimeout(id);
+};
 
-// Copy window properties to global
-Object.keys(jsdom.window).forEach(property => {
-  if (typeof global[property] === 'undefined') {
-    global[property] = jsdom.window[property];
-  }
-});
+// Import @testing-library/jest-dom using CommonJS
+require('@testing-library/jest-dom');
 
-// Mock Next.js modules
+// Mock next/image
 jest.mock('next/image', () => ({
   __esModule: true,
   default: (props) => {
-    return <img {...props} />;
+    // eslint-disable-next-line @next/next/no-img-element, jsx-a11y/alt-text
+    return <img {...props} />
   },
 }));
 
+// Mock next/navigation
 jest.mock('next/navigation', () => ({
   useRouter: () => ({
     push: jest.fn(),
+    replace: jest.fn(),
+    prefetch: jest.fn(),
     back: jest.fn(),
     forward: jest.fn(),
+    refresh: jest.fn(),
+    pathname: '/',
+    query: {}
   }),
-  usePathname: jest.fn().mockReturnValue('/'),
-  useSearchParams: jest.fn().mockReturnValue({
-    get: jest.fn(),
-  }),
+  usePathname: () => '/',
+  useSearchParams: () => new URLSearchParams(),
+  redirect: jest.fn()
 }));
 
-jest.mock('next-auth/react', () => ({
-  useSession: jest.fn().mockReturnValue({
-    data: null,
-    status: 'unauthenticated',
-  }),
-  signIn: jest.fn(),
-  signOut: jest.fn(),
-}));
+// Mock next-auth
+jest.mock("next-auth/react", () => {
+  const originalModule = jest.requireActual('next-auth/react');
+  const mockSession = {
+    expires: new Date(Date.now() + 2 * 86400).toISOString(),
+    user: { name: "Test User", email: "test@example.com", role: "client" }
+  };
+  
+  return {
+    __esModule: true,
+    ...originalModule,
+    useSession: jest.fn(() => {
+      return { data: mockSession, status: 'authenticated' };
+    }),
+    getSession: jest.fn(() => Promise.resolve(mockSession)),
+    signIn: jest.fn(() => Promise.resolve({ error: null, status: 200, ok: true })),
+    signOut: jest.fn(() => Promise.resolve(true)),
+  };
+});
 
-// Mock fetch API
-global.fetch = jest.fn().mockImplementation(() => 
-  Promise.resolve({
-    ok: true,
-    json: () => Promise.resolve({}),
-    blob: () => Promise.resolve(new Blob()),
-  })
-);
+jest.mock("next-auth", () => {
+  return {
+    __esModule: true,
+    getServerSession: jest.fn(() => {
+      return Promise.resolve({
+        user: { name: "Test User", email: "test@example.com", role: "client" }
+      });
+    }),
+  };
+});
 
-// Mock window.matchMedia for responsive tests
-if (typeof window !== 'undefined') {
-  window.matchMedia = jest.fn().mockImplementation(query => ({
+// Mock window.matchMedia
+Object.defineProperty(window, 'matchMedia', {
+  writable: true,
+  value: jest.fn().mockImplementation(query => ({
     matches: false,
     media: query,
     onchange: null,
-    addListener: jest.fn(),
-    removeListener: jest.fn(),
+    addListener: jest.fn(), // deprecated
+    removeListener: jest.fn(), // deprecated
     addEventListener: jest.fn(),
     removeEventListener: jest.fn(),
     dispatchEvent: jest.fn(),
-  }));
-}
+  })),
+});
 
-// Add URL object with mock functions
-global.URL = {
-  createObjectURL: jest.fn(() => 'mock-blob-url'),
-  revokeObjectURL: jest.fn(),
+// Define the custom matchers using CommonJS format
+const customMatchers = {
+  toBeInTheDocument() {
+    return {
+      compare(element) {
+        const result = {};
+        const pass = document.body.contains(element);
+        result.pass = pass;
+        
+        if (pass) {
+          result.message = () => `Expected element not to be in the document, but it was found`;
+        } else {
+          result.message = () => `Expected element to be in the document, but it was not found`;
+        }
+        
+        return result;
+      }
+    };
+  },
+  toBeVisible() {
+    return {
+      compare(element) {
+        const style = window.getComputedStyle(element);
+        const isVisible = style.display !== 'none' && 
+                         style.visibility !== 'hidden' && 
+                         style.opacity !== '0';
+        
+        return {
+          pass: isVisible,
+          message: () => isVisible ? 
+            `Expected element not to be visible, but it was` :
+            `Expected element to be visible, but it was not`,
+        };
+      }
+    };
+  },
+  toHaveClass() {
+    return {
+      compare(element, className) {
+        const hasClass = element.classList.contains(className);
+        
+        return {
+          pass: hasClass,
+          message: () => hasClass ? 
+            `Expected element not to have class ${className}, but it did` :
+            `Expected element to have class ${className}, but it did not`,
+        };
+      }
+    };
+  },
+  toHaveValue() {
+    return {
+      compare(element, expectedValue) {
+        const value = element.value;
+        const hasValue = value === expectedValue;
+        
+        return {
+          pass: hasValue,
+          message: () => hasValue ? 
+            `Expected element not to have value ${expectedValue}, but it did` :
+            `Expected element to have value ${expectedValue}, but it had value ${value}`,
+        };
+      }
+    };
+  },
+  toHaveAttribute() {
+    return {
+      compare(element, attr, expectedValue) {
+        const hasAttr = element.hasAttribute(attr);
+        const value = element.getAttribute(attr);
+        const hasExpectedValue = expectedValue === undefined || value === expectedValue;
+        const pass = hasAttr && hasExpectedValue;
+        
+        let message;
+        if (pass) {
+          message = expectedValue === undefined ?
+            `Expected element not to have attribute ${attr}, but it did` :
+            `Expected element not to have attribute ${attr} with value ${expectedValue}, but it did`;
+        } else {
+          if (!hasAttr) {
+            message = `Expected element to have attribute ${attr}, but it did not`;
+          } else {
+            message = `Expected element to have attribute ${attr} with value ${expectedValue}, but it had value ${value}`;
+          }
+        }
+        
+        return {
+          pass,
+          message: () => message,
+        };
+      }
+    };
+  }
 };
 
-// Setup MongoDB Memory Server
+// Add custom matchers to Jest
+beforeEach(() => {
+  jasmine.addMatchers(customMatchers);
+});
+
+// MongoDB Memory Server setup
+const { MongoMemoryServer } = require('mongodb-memory-server');
+const mongoose = require('mongoose');
+
 let mongoServer;
 
 beforeAll(async () => {
@@ -104,96 +217,22 @@ beforeAll(async () => {
 });
 
 afterAll(async () => {
-  if (mongoServer) {
-    await mongoose.disconnect();
-    await mongoServer.stop();
-  }
+  await mongoose.disconnect();
+  await mongoServer.stop();
 });
 
-// Extend Jest with custom matchers
-expect.extend({
-  toBeInTheDocument(received) {
-    const pass = Boolean(received && received.nodeType === Node.ELEMENT_NODE);
-    return {
-      pass,
-      message: () => `expected ${received} to${pass ? ' not' : ''} be in the document`,
-    };
-  },
-  toHaveTextContent(received, expected) {
-    const content = received ? received.textContent : '';
-    const pass = content.includes(expected);
-    return {
-      pass,
-      message: () => `expected ${received} to${pass ? ' not' : ''} have text content "${expected}"`,
-    };
-  },
-  toHaveClass(received, expected) {
-    const classes = received ? received.className.split(' ') : [];
-    const pass = classes.includes(expected);
-    return {
-      pass,
-      message: () => `expected ${received} to${pass ? ' not' : ''} have class "${expected}"`,
-    };
-  },
-  toHaveValue(received, expected) {
-    const value = received ? received.value : '';
-    const pass = value === expected;
-    return {
-      pass,
-      message: () => `expected ${received} to${pass ? ' not' : ''} have value "${expected}"`,
-    };
-  },
-  toBeVisible(received) {
-    const isVisible = received && 
-                    window.getComputedStyle(received).display !== 'none' && 
-                    window.getComputedStyle(received).visibility !== 'hidden' && 
-                    received.offsetWidth > 0 && 
-                    received.offsetHeight > 0;
-    const pass = Boolean(isVisible);
-    return {
-      pass,
-      message: () => `expected ${received} to${pass ? ' not' : ''} be visible`,
-    };
-  },
-  toHaveAttribute(received, name, expected) {
-    if (!received || !received.hasAttribute) {
-      return {
-        pass: false,
-        message: () => `expected ${received} to have attribute "${name}"`,
-      };
-    }
-
-    const hasAttribute = received.hasAttribute(name);
-    
-    if (expected === undefined) {
-      return {
-        pass: hasAttribute,
-        message: () => `expected ${received} to${hasAttribute ? ' not' : ''} have attribute "${name}"`,
-      };
-    }
-    
-    const actualValue = received.getAttribute(name);
-    const pass = hasAttribute && actualValue === expected;
-    
-    return {
-      pass,
-      message: () => `expected ${received} to${pass ? ' not' : ''} have attribute "${name}" with value "${expected}"`,
-    };
-  }
-});
-
-// Clear all mocks between tests
-beforeEach(() => {
+// Reset all mocks after each test
+afterEach(() => {
   jest.clearAllMocks();
 });
 
-// Suppress console errors during tests (for React warnings)
+// Suppress console errors for React warnings during tests
 const originalConsoleError = console.error;
 console.error = (...args) => {
   if (
     /Warning.*not wrapped in act/i.test(args[0]) ||
     /Warning: ReactDOM.render is no longer supported/i.test(args[0]) ||
-    /Warning: React.createFactory/i.test(args[0])
+    /Warning: Expected server HTML to contain a matching/i.test(args[0])
   ) {
     return;
   }
