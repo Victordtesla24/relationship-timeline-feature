@@ -17,6 +17,7 @@ type RegisterFormValues = z.infer<typeof registerSchema>;
 
 export function RegisterForm() {
   const [error, setError] = useState<string | null>(null);
+  const [detailedError, setDetailedError] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(false);
   const router = useRouter();
   
@@ -34,8 +35,11 @@ export function RegisterForm() {
   const onSubmit = async (data: RegisterFormValues) => {
     setIsLoading(true);
     setError(null);
+    setDetailedError(null);
 
     try {
+      console.log('Submitting registration form', { ...data, password: '[REDACTED]' });
+      
       const response = await fetch('/api/auth/register', {
         method: 'POST',
         headers: {
@@ -44,14 +48,30 @@ export function RegisterForm() {
         body: JSON.stringify(data),
       });
 
+      // Get the response data for error details
+      const responseData = await response.json();
+      
       if (!response.ok) {
-        setError('Registration failed');
+        console.error('Registration failed', responseData);
+        
+        if (response.status === 409) {
+          setError('Email already registered');
+        } else if (response.status === 400) {
+          setError('Invalid input data');
+        } else {
+          setError('Registration failed: ' + (responseData.message || 'Unknown error'));
+        }
+        
+        // Set detailed error for development
+        setDetailedError(responseData);
         setIsLoading(false);
         return;
       }
 
+      console.log('Registration successful, redirecting to login');
       router.push('/login?registered=true');
     } catch (err) {
+      console.error('Error during registration:', err);
       setError('An error occurred during registration');
       setIsLoading(false);
     }
@@ -59,7 +79,18 @@ export function RegisterForm() {
 
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="mt-8 space-y-6">
-      {error && <div className="bg-red-50 p-4"><p className="text-red-700">{error}</p></div>}
+      {error && (
+        <div className="bg-red-50 p-4 rounded">
+          <p className="text-red-700">{error}</p>
+          
+          {process.env.NODE_ENV === 'development' && detailedError && (
+            <div className="mt-2 text-xs">
+              <p className="font-semibold">Details:</p>
+              <pre className="whitespace-pre-wrap">{JSON.stringify(detailedError, null, 2)}</pre>
+            </div>
+          )}
+        </div>
+      )}
       
       <div className="space-y-4">
         <div>
