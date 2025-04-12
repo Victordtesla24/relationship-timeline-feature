@@ -1,49 +1,15 @@
 {
   "version": 2,
-  "public": false,
-  "buildCommand": "npm run build",
   "headers": [
     {
-      "source": "/api/public/register",
+      "source": "/api/public/(.*)",
       "headers": [
-        {
-          "key": "Access-Control-Allow-Origin",
-          "value": "*"
-        },
-        {
-          "key": "Access-Control-Allow-Methods",
-          "value": "GET, POST, OPTIONS"
-        },
-        {
-          "key": "Access-Control-Allow-Headers",
-          "value": "Content-Type, Authorization"
-        }
-      ]
-    },
-    {
-      "source": "/api/auth/register",
-      "headers": [
-        {
-          "key": "Access-Control-Allow-Origin",
-          "value": "*"
-        },
-        {
-          "key": "Access-Control-Allow-Methods",
-          "value": "GET, POST, OPTIONS"
-        },
-        {
-          "key": "Access-Control-Allow-Headers",
-          "value": "Content-Type"
-        }
+        { "key": "Access-Control-Allow-Origin", "value": "*" },
+        { "key": "Access-Control-Allow-Methods", "value": "GET,POST,OPTIONS" },
+        { "key": "Access-Control-Allow-Headers", "value": "Content-Type, Authorization" },
+        { "key": "Cache-Control", "value": "no-store, no-cache" }
       ]
     }
   ],
-  "rewrites": [
-    { "source": "/api/public/register", "destination": "/api/public/register" },
-    { "source": "/api/auth/register", "destination": "/api/auth/register" },
-    { "source": "/api/auth/(.*)", "destination": "/api/auth/$1" },
-    { "source": "/login", "destination": "/login" },
-    { "source": "/register", "destination": "/register" },
-    { "source": "/(.*)", "destination": "/$1" }
-  ]
-} 
+  "cleanUrls": true
+}
