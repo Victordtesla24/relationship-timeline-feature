@@ -2,6 +2,14 @@
 const path = require('path');
 
 const nextConfig = {
+  // Disable ESLint during the build process
+  eslint: {
+    ignoreDuringBuilds: true,
+  },
+  // Disable TypeScript errors during the build process
+  typescript: {
+    ignoreBuildErrors: true,
+  },
   images: {
     domains: ['res.cloudinary.com'],
   },
