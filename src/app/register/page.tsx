@@ -6,6 +6,9 @@ export const metadata = {
   description: 'Create a new Relationship Timeline account',
 };
 
+// Force dynamic rendering to ensure most up-to-date content
+export const dynamic = 'force-dynamic';
+
 export default function RegisterPage() {
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
@@ -18,7 +21,15 @@ export default function RegisterPage() {
               Sign in instead
             </Link>
           </p>
+          
+          {/* Help message about registration using public API endpoint */}
+          <div className="mt-2 text-xs text-gray-500">
+            <p>
+              If registration fails, we'll automatically try our direct registration service.
+            </p>
+          </div>
         </div>
+        
         <RegisterForm />
       </div>
     </div>

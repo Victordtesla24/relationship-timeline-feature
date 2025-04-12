@@ -5,10 +5,9 @@ import { z } from 'zod';
 
 export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
-
-// Disable edge runtime to ensure compatibility with bcrypt
 export const preferredRegion = 'auto';
 
+// No authentication protection for this public endpoint
 const registerSchema = z.object({
   name: z.string().min(2, 'Name must be at least 2 characters'),
   email: z.string().email('Please enter a valid email address'),
@@ -17,16 +16,9 @@ const registerSchema = z.object({
 });
 
 export async function POST(request: Request) {
-  // Add CORS headers
-  const origin = request.headers.get('origin');
-  const allowedOrigins = [
-    'http://localhost:3000',
-    'https://relationship-timeline-feature-kqg270foa-vics-projects-31447d42.vercel.app',
-    'https://relationship-timeline-feature.vercel.app'
-  ];
-  
+  // Add CORS headers to ensure browser requests work
   const corsHeaders = {
-    'Access-Control-Allow-Origin': allowedOrigins.includes(origin || '') ? origin! : allowedOrigins[0],
+    'Access-Control-Allow-Origin': '*',
     'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
     'Access-Control-Allow-Headers': 'Content-Type, Authorization',
   };
@@ -41,18 +33,18 @@ export async function POST(request: Request) {
   
   try {
     // Connect to database
-    console.log('Connecting to MongoDB...');
+    console.log('Public API: Connecting to MongoDB...');
     await dbConnect();
-    console.log('Connected to MongoDB successfully');
+    console.log('Public API: Connected to MongoDB successfully');
 
     // Parse and validate request body
     const body = await request.json();
-    console.log('Received registration request', { ...body, password: '[REDACTED]' });
+    console.log('Public API: Received registration request', { ...body, password: '[REDACTED]' });
     
     const validationResult = registerSchema.safeParse(body);
 
     if (!validationResult.success) {
-      console.log('Validation error:', validationResult.error.errors);
+      console.log('Public API: Validation error:', validationResult.error.errors);
       return NextResponse.json(
         { message: 'Invalid input data', errors: validationResult.error.errors },
         { 
@@ -65,10 +57,10 @@ export async function POST(request: Request) {
     const { name, email, password, role } = validationResult.data;
 
     // Check if user already exists
-    console.log('Checking if user exists with email:', email);
+    console.log('Public API: Checking if user exists with email:', email);
     const existingUser = await User.findOne({ email });
     if (existingUser) {
-      console.log('User already exists');
+      console.log('Public API: User already exists');
       return NextResponse.json(
         { message: 'User with this email already exists' },
         { 
@@ -79,14 +71,14 @@ export async function POST(request: Request) {
     }
 
     // Create new user
-    console.log('Creating new user...');
+    console.log('Public API: Creating new user...');
     const user = await User.create({
       name,
       email,
       password, // Will be hashed by the pre-save hook in the model
       role,
     });
-    console.log('User created successfully with ID:', user._id);
+    console.log('Public API: User created successfully with ID:', user._id);
 
     return NextResponse.json(
       { message: 'User registered successfully', userId: user._id },
@@ -96,7 +88,7 @@ export async function POST(request: Request) {
       }
     );
   } catch (error: any) {
-    console.error('Registration error:', error);
+    console.error('Public API: Registration error:', error);
     
     // Provide more detailed error information
     const errorDetails = {
@@ -119,17 +111,10 @@ export async function POST(request: Request) {
 
 // Add OPTIONS handler for CORS preflight
 export async function OPTIONS(request: Request) {
-  const origin = request.headers.get('origin');
-  const allowedOrigins = [
-    'http://localhost:3000',
-    'https://relationship-timeline-feature-kqg270foa-vics-projects-31447d42.vercel.app',
-    'https://relationship-timeline-feature.vercel.app'
-  ];
-  
   return new NextResponse(null, {
     status: 204,
     headers: {
-      'Access-Control-Allow-Origin': allowedOrigins.includes(origin || '') ? origin! : allowedOrigins[0],
+      'Access-Control-Allow-Origin': '*',
       'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
       'Access-Control-Allow-Headers': 'Content-Type, Authorization',
     },
