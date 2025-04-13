@@ -83,7 +83,10 @@ export default function ExportContent() {
       
       // Use dynamic import to load the export libraries only when needed
       if (exportSettings.format === 'pdf') {
-        const { jsPDF } = await import('jspdf');
+        // Import jspdf with a more reliable approach
+        const jsPDFModule = await import('jspdf');
+        const jsPDF = jsPDFModule.default;
+        
         const doc = new jsPDF();
         let y = 20;
         
@@ -105,6 +108,12 @@ export default function ExportContent() {
         
         // Add events
         for (const event of events) {
+          // Check if we need a new page
+          if (y > 270) {
+            doc.addPage();
+            y = 20;
+          }
+          
           // Add date
           doc.setFontSize(14);
           doc.text(format(parseISO(event.date), 'MMMM d, yyyy'), 20, y += 10);
@@ -120,7 +129,7 @@ export default function ExportContent() {
           y += (splitDescription.length * 7);
           
           // Add images if requested
-          if (exportSettings.includeImages && event.mediaIds.length > 0) {
+          if (exportSettings.includeImages && event.mediaIds && event.mediaIds.length > 0) {
             const mediaItems = getMediaItems(event._id);
             let imageCount = 0;
             
@@ -133,12 +142,20 @@ export default function ExportContent() {
                     y = 20;
                   }
                   
-                  // Add image
-                  doc.addImage(media.url, 'JPEG', 20, y += 10, 80, 60);
-                  y += 70;
-                  imageCount++;
+                  // Add image with error handling
+                  try {
+                    doc.addImage(media.url, 'JPEG', 20, y += 10, 80, 60);
+                    y += 70;
+                    imageCount++;
+                  } catch (imageError) {
+                    console.error('Error adding image:', imageError);
+                    // Add a placeholder or note instead
+                    doc.setFontSize(10);
+                    doc.text(`[Image: ${media.name || 'Attachment'}]`, 20, y += 10);
+                    y += 15;
+                  }
                 } catch (error) {
-                  console.error('Error adding image:', error);
+                  console.error('Error processing image:', error);
                 }
               }
             }
@@ -147,62 +164,97 @@ export default function ExportContent() {
           // Add separator
           doc.line(20, y += 10, 190, y);
           y += 10;
-          
-          // Check if we need a new page
-          if (y > 270) {
-            doc.addPage();
-            y = 20;
-          }
         }
         
         // Save the document
         const filename = `${exportSettings.title.replace(/\s+/g, '-').toLowerCase()}-${format(new Date(), 'yyyy-MM-dd')}.pdf`;
         doc.save(filename);
       } else if (exportSettings.format === 'docx') {
-        const { Document, Packer, Paragraph, TextRun } = await import('docx');
+        // More reliable imports for docx
+        const docx = await import('docx');
         const { saveAs } = await import('file-saver');
         
-        // Create document
+        const { Document, Packer, Paragraph, TextRun } = docx;
+
+        // Create document with better styling but more compatible with types
         const doc = new Document({
           sections: [
             {
               properties: {},
               children: [
                 new Paragraph({
-                  children: [new TextRun({ text: exportSettings.title, bold: true, size: 36 } as any)],
+                  children: [
+                    new TextRun({ 
+                      text: exportSettings.title,
+                      bold: true
+                    } as any)
+                  ]
                 }),
+                
+                exportSettings.filterByDate ? new Paragraph({
+                  children: [
+                    new TextRun({ 
+                      text: `Period: ${format(new Date(exportSettings.startDate), 'MMM d, yyyy')} to ${format(new Date(exportSettings.endDate), 'MMM d, yyyy')}`,
+                    } as any)
+                  ]
+                }) : new Paragraph({}),
+                
                 new Paragraph({
-                  children: [new TextRun({ text: ' ' })],
+                  children: [
+                    new TextRun({ 
+                      text: `Generated on: ${format(new Date(), 'MMMM d, yyyy')}`,
+                      italics: true
+                    } as any)
+                  ]
                 }),
+                
+                // Separator
                 new Paragraph({
-                  children: [new TextRun({ text: `Generated on: ${format(new Date(), 'MMMM d, yyyy')}`, size: 24 } as any)],
+                  children: [new TextRun({ text: "" })]
                 }),
-                new Paragraph({
-                  children: [new TextRun({ text: ' ' })],
-                }),
+                
                 ...events.flatMap(event => {
-                  const paragraphs = [
+                  return [
+                    // Date
                     new Paragraph({
-                      children: [new TextRun({ text: format(parseISO(event.date), 'MMMM d, yyyy'), italics: true, size: 24 } as any)],
+                      children: [
+                        new TextRun({ 
+                          text: format(parseISO(event.date), 'MMMM d, yyyy'),
+                          italics: true,
+                          color: '666666'
+                        } as any)
+                      ]
                     }),
+                    
+                    // Event title
                     new Paragraph({
-                      children: [new TextRun({ text: event.title, bold: true, size: 28 } as any)],
+                      children: [
+                        new TextRun({ 
+                          text: event.title,
+                          bold: true
+                        } as any)
+                      ]
                     }),
+                    
+                    // Description
                     new Paragraph({
-                      children: [new TextRun({ text: event.description, size: 24 } as any)],
+                      children: [
+                        new TextRun({ 
+                          text: event.description
+                        })
+                      ]
                     }),
+                    
+                    // Separator
                     new Paragraph({
-                      children: [new TextRun({ text: ' ' })],
+                      children: [new TextRun({ text: "────────────────────────────────────────" })]
                     }),
+                    
+                    // Spacing
                     new Paragraph({
-                      children: [new TextRun({ text: '──────────────────────────────────' })],
-                    }),
-                    new Paragraph({
-                      children: [new TextRun({ text: ' ' })],
+                      children: [new TextRun({ text: "" })]
                     }),
                   ];
-                  
-                  return paragraphs;
                 }),
               ],
             },
@@ -257,120 +309,131 @@ export default function ExportContent() {
             />
           </div>
           
-          <div>
-            <label className="flex items-center">
+          <div className="flex items-center space-x-4">
+            <div className="flex items-center">
               <input
                 type="checkbox"
+                id="filterByDate"
                 name="filterByDate"
                 checked={exportSettings.filterByDate}
                 onChange={handleSettingChange}
                 className="h-4 w-4 text-primary-600 focus:ring-primary-500 border-gray-300 rounded"
               />
-              <span className="ml-2 text-gray-700">Filter by Date Range</span>
-            </label>
-            
-            {exportSettings.filterByDate && (
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-3">
-                <div>
-                  <label htmlFor="startDate" className="block text-gray-700 font-medium mb-2">
-                    Start Date
-                  </label>
-                  <input
-                    type="date"
-                    id="startDate"
-                    name="startDate"
-                    value={exportSettings.startDate}
-                    onChange={handleSettingChange}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
-                  />
-                </div>
-                <div>
-                  <label htmlFor="endDate" className="block text-gray-700 font-medium mb-2">
-                    End Date
-                  </label>
-                  <input
-                    type="date"
-                    id="endDate"
-                    name="endDate"
-                    value={exportSettings.endDate}
-                    onChange={handleSettingChange}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
-                  />
-                </div>
+              <label htmlFor="filterByDate" className="ml-2 block text-gray-700">
+                Filter by date range
+              </label>
+            </div>
+          </div>
+          
+          {exportSettings.filterByDate && (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label htmlFor="startDate" className="block text-gray-700 font-medium mb-2">
+                  Start Date
+                </label>
+                <input
+                  type="date"
+                  id="startDate"
+                  name="startDate"
+                  value={exportSettings.startDate}
+                  onChange={handleSettingChange}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
+                />
               </div>
-            )}
+              
+              <div>
+                <label htmlFor="endDate" className="block text-gray-700 font-medium mb-2">
+                  End Date
+                </label>
+                <input
+                  type="date"
+                  id="endDate"
+                  name="endDate"
+                  value={exportSettings.endDate}
+                  onChange={handleSettingChange}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
+                />
+              </div>
+            </div>
+          )}
+          
+          <div>
+            <p className="text-gray-700 font-medium mb-2">Include Content</p>
+            <div className="flex flex-wrap gap-4">
+              <div className="flex items-center">
+                <input
+                  type="checkbox"
+                  id="includeImages"
+                  name="includeImages"
+                  checked={exportSettings.includeImages}
+                  onChange={handleSettingChange}
+                  className="h-4 w-4 text-primary-600 focus:ring-primary-500 border-gray-300 rounded"
+                />
+                <label htmlFor="includeImages" className="ml-2 block text-gray-700">
+                  Images
+                </label>
+              </div>
+              
+              <div className="flex items-center">
+                <input
+                  type="checkbox"
+                  id="includeDocuments"
+                  name="includeDocuments"
+                  checked={exportSettings.includeDocuments}
+                  onChange={handleSettingChange}
+                  className="h-4 w-4 text-primary-600 focus:ring-primary-500 border-gray-300 rounded"
+                />
+                <label htmlFor="includeDocuments" className="ml-2 block text-gray-700">
+                  Documents
+                </label>
+              </div>
+            </div>
           </div>
           
-          <div className="flex space-x-4">
-            <label className="flex items-center">
-              <input
-                type="checkbox"
-                name="includeImages"
-                checked={exportSettings.includeImages}
-                onChange={handleSettingChange}
-                className="h-4 w-4 text-primary-600 focus:ring-primary-500 border-gray-300 rounded"
-              />
-              <span className="ml-2 text-gray-700">Include Images</span>
-            </label>
-            
-            <label className="flex items-center">
-              <input
-                type="checkbox"
-                name="includeDocuments"
-                checked={exportSettings.includeDocuments}
-                onChange={handleSettingChange}
-                className="h-4 w-4 text-primary-600 focus:ring-primary-500 border-gray-300 rounded"
-              />
-              <span className="ml-2 text-gray-700">Include Documents</span>
-            </label>
+          <div>
+            <p className="text-gray-700 font-medium mb-2">Export Format</p>
+            <div className="flex flex-wrap gap-4">
+              <button
+                onClick={() => handleFormatSelect('pdf')}
+                className={`px-4 py-2 rounded-md border ${
+                  exportSettings.format === 'pdf' 
+                    ? 'bg-primary-100 border-primary-500 text-primary-700' 
+                    : 'border-gray-300 text-gray-700 hover:bg-gray-50'
+                }`}
+              >
+                PDF Document
+              </button>
+              
+              <button
+                onClick={() => handleFormatSelect('docx')}
+                className={`px-4 py-2 rounded-md border ${
+                  exportSettings.format === 'docx' 
+                    ? 'bg-primary-100 border-primary-500 text-primary-700' 
+                    : 'border-gray-300 text-gray-700 hover:bg-gray-50'
+                }`}
+              >
+                Word Document
+              </button>
+            </div>
+          </div>
+          
+          <div className="pt-4">
+            <button
+              onClick={handleExport}
+              disabled={isExporting || !exportSettings.format}
+              className={`w-full py-3 rounded-md font-medium text-white ${
+                isExporting || !exportSettings.format
+                  ? 'bg-gray-400 cursor-not-allowed'
+                  : 'bg-primary-600 hover:bg-primary-700'
+              }`}
+            >
+              {isExporting 
+                ? 'Exporting...' 
+                : `Export as ${exportSettings.format ? exportSettings.format.toUpperCase() : 'Document'}`
+              }
+            </button>
           </div>
         </div>
-      </div>
-      
-      <div>
-        <h2 className="text-xl font-semibold mb-4">Export Format</h2>
-        
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <button
-            onClick={() => handleFormatSelect('pdf')}
-            className={`flex flex-col items-center justify-center p-6 border-2 rounded-lg transition ${
-              exportSettings.format === 'pdf' 
-                ? 'border-primary-500 bg-primary-50' 
-                : 'border-gray-200 hover:bg-gray-50'
-            }`}
-          >
-            <div className="w-16 h-16 bg-primary-100 rounded-full flex items-center justify-center mb-3">
-              <span className="text-2xl text-primary-600">PDF</span>
-            </div>
-            <h3 className="text-lg font-medium text-gray-900">PDF Format</h3>
-            <p className="text-sm text-gray-500 text-center mt-1">Best for printing and formal documentation</p>
-          </button>
-          
-          <button
-            onClick={() => handleFormatSelect('docx')}
-            className={`flex flex-col items-center justify-center p-6 border-2 rounded-lg transition ${
-              exportSettings.format === 'docx' 
-                ? 'border-primary-500 bg-primary-50' 
-                : 'border-gray-200 hover:bg-gray-50'
-            }`}
-          >
-            <div className="w-16 h-16 bg-primary-100 rounded-full flex items-center justify-center mb-3">
-              <span className="text-2xl text-primary-600">DOC</span>
-            </div>
-            <h3 className="text-lg font-medium text-gray-900">DOCX Format</h3>
-            <p className="text-sm text-gray-500 text-center mt-1">Best for editing and customizing</p>
-          </button>
-        </div>
-      </div>
-      
-      <div className="pt-4">
-        <button 
-          onClick={handleExport}
-          disabled={isExporting || !exportSettings.format}
-          className="px-6 py-3 bg-primary-600 text-white rounded-md hover:bg-primary-700 disabled:opacity-50 disabled:cursor-not-allowed"
-        >
-          {isExporting ? 'Generating Document...' : `Export as ${exportSettings.format ? exportSettings.format.toUpperCase() : 'Document'}`}
-        </button>
       </div>
     </div>
   );

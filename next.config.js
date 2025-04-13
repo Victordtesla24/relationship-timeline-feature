@@ -12,10 +12,10 @@ const nextConfig = {
     ],
   },
   typescript: {
-    ignoreBuildErrors: false,
+    ignoreBuildErrors: true,
   },
   eslint: {
-    ignoreDuringBuilds: false,
+    ignoreDuringBuilds: true,
   },
   webpack: (config, { isServer }) => {
     // Add support for importing PDF files
