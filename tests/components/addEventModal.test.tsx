@@ -1,7 +1,6 @@
 import React from 'react';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import AddEventModal from '@/components/timeline/AddEventModal';
-import { format } from 'date-fns';
 
 // Mock fetch API
 global.fetch = jest.fn();

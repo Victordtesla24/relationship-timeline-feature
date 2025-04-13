@@ -1,5 +1,5 @@
 import React from 'react';
-import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import { render, screen } from '@testing-library/react';
 import MediaUploader from '@/components/timeline/MediaUploader';
 
 // Mock fetch API
@@ -28,13 +28,17 @@ describe('MediaUploader Component', () => {
         _id: 'media-1',
         url: '/uploads/test-image.jpg',
         type: 'image',
-        filename: 'test-image.jpg'
+        name: 'test-image.jpg',
+        eventId: 'event-1',
+        createdAt: '2023-01-01T00:00:00.000Z'
       },
       {
         _id: 'media-2',
         url: '/uploads/test-doc.pdf',
         type: 'document',
-        filename: 'test-doc.pdf'
+        name: 'test-doc.pdf',
+        eventId: 'event-1',
+        createdAt: '2023-01-01T00:00:00.000Z'
       }
     ];
     
@@ -81,7 +85,9 @@ describe('MediaUploader Component', () => {
         _id: 'media-3',
         url: '/uploads/missing-image.jpg',
         type: 'image',
-        filename: 'missing-image.jpg'
+        name: 'missing-image.jpg',
+        eventId: 'event-1',
+        createdAt: '2023-01-01T00:00:00.000Z'
       }
     ];
     

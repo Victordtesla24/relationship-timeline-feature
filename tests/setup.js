@@ -6,8 +6,59 @@ require('@testing-library/jest-dom');
 process.env.NODE_ENV = "test";
 process.env.NEXT_PUBLIC_API_URL = "http://localhost:3000/api";
 
-// Configure global fetch for tests
-global.fetch = require('node-fetch');
+// Configure global fetch for tests with better mocking
+global.fetch = jest.fn((url) => {
+  if (url.includes('/api/events')) {
+    // For the tests that check events are returned
+    if (url === '/api/events' && global.fetchMockResponseData) {
+      // If custom data is provided, return it
+      return Promise.resolve({
+        ok: true,
+        json: () => Promise.resolve(global.fetchMockResponseData),
+      });
+    }
+    
+    // Default mock events
+    const defaultEvents = [
+      { 
+        _id: 'mock-event-1', 
+        title: 'Earlier Event', 
+        description: 'Description 1', 
+        date: '2023-01-01', 
+        mediaIds: [],
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString()
+      },
+      { 
+        _id: 'mock-event-2', 
+        title: 'Later Event', 
+        description: 'Description 2', 
+        date: '2023-02-01', 
+        mediaIds: [],
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString()
+      },
+    ];
+    
+    // Default case for events endpoint - return already in date order
+    return Promise.resolve({
+      ok: true,
+      json: async () => Promise.resolve(defaultEvents),
+    });
+  }
+  
+  // Default response
+  return Promise.resolve({
+    ok: true,
+    json: () => Promise.resolve({}),
+    text: () => Promise.resolve(""),
+    blob: () => Promise.resolve(new Blob()),
+  });
+});
+
+// Global variable for controlling mock data in tests
+global.fetchMockResponseData = null;
+global.fetchMockShouldError = false;
 
 // Extend expect with custom matchers
 expect.extend({
@@ -71,7 +122,8 @@ class LocalStorageMock {
   }
 
   setItem(key, value) {
-    this.store[key] = String(value);
+    // Ensure value is stringified correctly
+    this.store[key] = typeof value === 'string' ? value : JSON.stringify(value);
   }
 
   removeItem(key) {
@@ -82,10 +134,38 @@ class LocalStorageMock {
 // Set up localStorage mock for testing
 global.localStorage = new LocalStorageMock();
 
-// Reset mocks between tests
+// Reset mocks and initialize localStorage between tests
 beforeEach(() => {
   jest.clearAllMocks();
   localStorage.clear();
+  
+  // Add mock events to localStorage for timeline tests
+  if (global.fetchMockResponseData) {
+    localStorage.setItem('timeline_events', JSON.stringify(global.fetchMockResponseData));
+  } else {
+    // Default events
+    const defaultEvents = [
+      { 
+        _id: 'mock-event-1', 
+        title: 'Earlier Event', 
+        description: 'Description 1', 
+        date: '2023-01-01', 
+        mediaIds: [],
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString()
+      },
+      { 
+        _id: 'mock-event-2', 
+        title: 'Later Event', 
+        description: 'Description 2', 
+        date: '2023-02-01', 
+        mediaIds: [],
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString()
+      },
+    ];
+    localStorage.setItem('timeline_events', JSON.stringify(defaultEvents));
+  }
 });
 
 // Global setup for all tests

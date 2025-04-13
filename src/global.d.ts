@@ -11,6 +11,14 @@ declare namespace jest {
   
   function fn<T = any>(): Mock<T>;
   function clearAllMocks(): void;
+  
+  interface Matchers<R> {
+    any(value: any): any;
+  }
+  
+  interface Expect {
+    any(constructor: any): any;
+  }
 }
 
 declare var global: {
@@ -45,6 +53,9 @@ declare function expect(actual: any): {
   toHaveAttribute(name: string, value?: string): void;
   toBeVisible(): void;
   toBe(expected: any): void;
+  toEqual(expected: any): void;
+  toBeTruthy(): void;
+  toHaveTextContent(text: string): void;
   not: {
     toHaveClass(arg0: string): unknown;
     toHaveBeenCalled(): unknown;
@@ -54,4 +65,9 @@ declare function expect(actual: any): {
   toHaveBeenCalled(): void;
   toHaveBeenCalledTimes(count: number): void;
   toHaveBeenCalledWith(...args: any[]): void;
+  any(constructor: any): any;
 }; 
+
+declare namespace expect {
+  function any(constructor: any): any;
+} 

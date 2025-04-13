@@ -1,55 +1,73 @@
 import React from 'react';
 
 /**
- * This utility provides workarounds for TypeScript errors related to React hooks
- * that occur due to conflicts between the project's type definitions.
+ * This utility provides proper TypeScript compatibility for React hooks
+ * that might encounter conflicts between the project's type definitions.
  * 
- * These functions maintain full functionality while suppressing TypeScript errors.
+ * The implementation ensures type safety while maintaining full functionality.
  */
 
-// Use type assertion to work around React type conflicts
-const ReactCompat = React as any;
-
 /**
- * useState hook wrapper that avoids TypeScript errors
+ * useState hook with proper TypeScript types
  */
 export function useStateCompat<T>(initialState: T | (() => T)): [T, (newState: T | ((prevState: T) => T)) => void] {
-  return ReactCompat.useState(initialState);
+  return React.useState<T>(initialState);
 }
 
 /**
- * useRef hook wrapper that avoids TypeScript errors
+ * useRef hook with proper TypeScript types
  */
 export function useRefCompat<T>(initialValue: T | null): { current: T | null } {
-  return ReactCompat.useRef(initialValue);
+  return React.useRef<T | null>(initialValue);
 }
 
 /**
- * useEffect hook wrapper that avoids TypeScript errors
+ * useEffect hook with proper TypeScript types
  */
-export function useEffectCompat(effect: () => void | (() => void), deps?: any[]): void {
-  return ReactCompat.useEffect(effect, deps);
+export function useEffectCompat(effect: () => void | (() => void), deps?: React.DependencyList): void {
+  return React.useEffect(effect, deps);
 }
 
 /**
- * useCallback hook wrapper that avoids TypeScript errors
+ * useCallback hook with proper TypeScript types
  */
-export function useCallbackCompat<T extends (...args: any[]) => any>(callback: T, deps: any[]): T {
-  return ReactCompat.useCallback(callback, deps);
+export function useCallbackCompat<T extends (...args: any[]) => any>(callback: T, deps: React.DependencyList): T {
+  return React.useCallback(callback, deps);
 }
 
 /**
- * useMemo hook wrapper that avoids TypeScript errors
+ * useMemo hook with proper TypeScript types
  */
-export function useMemoCompat<T>(factory: () => T, deps: any[]): T {
-  return ReactCompat.useMemo(factory, deps);
+export function useMemoCompat<T>(factory: () => T, deps: React.DependencyList): T {
+  return React.useMemo(factory, deps);
 }
 
 /**
- * useContext hook wrapper that avoids TypeScript errors
+ * useContext hook with proper TypeScript types
  */
-export function useContextCompat<T>(context: any): T {
-  return ReactCompat.useContext(context);
+export function useContextCompat<T>(context: React.Context<T>): T {
+  return React.useContext(context);
 }
+
+/**
+ * Safely exported React for compatibility usage
+ * This ensures all components have access to the standard React API
+ * without TypeScript conflicts
+ */
+const ReactCompat = {
+  useState: useStateCompat,
+  useEffect: useEffectCompat,
+  useRef: useRefCompat,
+  useCallback: useCallbackCompat,
+  useMemo: useMemoCompat,
+  useContext: useContextCompat,
+  Fragment: React.Fragment,
+  createElement: React.createElement,
+  createContext: React.createContext,
+  forwardRef: React.forwardRef,
+  Children: React.Children,
+  cloneElement: React.cloneElement,
+  isValidElement: React.isValidElement
+};
 
 export default ReactCompat; 

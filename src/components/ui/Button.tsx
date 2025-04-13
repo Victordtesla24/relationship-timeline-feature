@@ -12,7 +12,7 @@ type ButtonProps = {
   icon?: any;
 };
 
-function EnhancedButton({
+function AppButton({
   children,
   onClick,
   variant = 'primary',
@@ -71,4 +71,4 @@ function EnhancedButton({
   );
 }
 
-export default EnhancedButton; 
+export default AppButton; 

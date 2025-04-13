@@ -2,6 +2,19 @@ import React from 'react';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import EditEventModal from '@/components/timeline/EditEventModal';
 import { format } from 'date-fns';
+import * as localStorage from '@/utils/localStorage';
+
+// Mock the localStorage functions
+jest.mock('@/utils/localStorage', () => ({
+  getMediaItems: jest.fn(() => []),
+  updateEvent: jest.fn((id, data) => ({
+    _id: id,
+    ...data,
+    mediaIds: [],
+    updatedAt: new Date().toISOString()
+  })),
+  deleteEvent: jest.fn(() => true)
+}));
 
 // Mock the MediaUploader component
 jest.mock('@/components/timeline/MediaUploader', () => {
@@ -13,9 +26,6 @@ jest.mock('@/components/timeline/MediaUploader', () => {
   ));
 });
 
-// Mock fetch for API calls
-global.fetch = jest.fn();
-
 // Mock window.confirm
 window.confirm = jest.fn().mockImplementation(() => true);
 
@@ -26,6 +36,9 @@ describe('EditEventModal', () => {
     description: 'Test Description',
     date: '2023-01-01T00:00:00.000Z',
     mediaIds: ['media1', 'media2'],
+    createdAt: '2023-01-01T00:00:00.000Z',
+    updatedAt: '2023-01-01T00:00:00.000Z',
+    commentIds: []
   };
 
   const mockMediaItems = [
@@ -39,20 +52,8 @@ describe('EditEventModal', () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
-    
-    // Mock fetch for media items
-    (global.fetch as jest.Mock).mockImplementation((url) => {
-      if (url.includes('/api/media?eventId=')) {
-        return Promise.resolve({
-          ok: true,
-          json: () => Promise.resolve(mockMediaItems),
-        });
-      }
-      return Promise.resolve({
-        ok: true,
-        json: () => Promise.resolve({}),
-      });
-    });
+    // Setup mock returns
+    (localStorage.getMediaItems as jest.Mock).mockReturnValue(mockMediaItems);
   });
 
   it('renders the modal when isOpen is true', async () => {
@@ -68,7 +69,7 @@ describe('EditEventModal', () => {
 
     await waitFor(() => {
       expect(screen.getByText('Edit Event')).toBeInTheDocument();
-      expect(screen.getByLabelText('Title')).toHaveValue('Test Event');
+      expect(screen.getByLabelText('Event Title')).toHaveValue('Test Event');
       expect(screen.getByLabelText('Description')).toHaveValue('Test Description');
       expect(screen.getByLabelText('Date')).toHaveValue(format(new Date(mockEvent.date), 'yyyy-MM-dd'));
       expect(screen.getByTestId('media-uploader')).toBeInTheDocument();
@@ -88,7 +89,7 @@ describe('EditEventModal', () => {
 
     // Using a more basic approach with strict equality check
     const element = screen.queryByText('Edit Event');
-    expect(element).toEqual(null);
+    expect(element).toBe(null);
   });
 
   it('calls onClose when cancel button is clicked', async () => {
@@ -109,26 +110,15 @@ describe('EditEventModal', () => {
   });
 
   it('submits the form and calls onEventUpdated', async () => {
-    const mockUpdatedEvent = { ...mockEvent, title: 'Updated Title' };
+    const mockUpdatedEvent = { 
+      ...mockEvent, 
+      title: 'Updated Title',
+      description: 'Test Description',
+      date: '2023-01-01',
+      updatedAt: new Date().toISOString()
+    };
     
-    (global.fetch as jest.Mock).mockImplementation((url, options) => {
-      if (url.includes(`/api/events/${mockEvent._id}`) && options.method === 'PUT') {
-        return Promise.resolve({
-          ok: true,
-          json: () => Promise.resolve(mockUpdatedEvent),
-        });
-      }
-      if (url.includes('/api/media?eventId=')) {
-        return Promise.resolve({
-          ok: true,
-          json: () => Promise.resolve(mockMediaItems),
-        });
-      }
-      return Promise.resolve({
-        ok: true,
-        json: () => Promise.resolve({}),
-      });
-    });
+    (localStorage.updateEvent as jest.Mock).mockReturnValue(mockUpdatedEvent);
 
     render(
       <EditEventModal
@@ -142,7 +132,7 @@ describe('EditEventModal', () => {
 
     await waitFor(() => {
       // Update title
-      const titleInput = screen.getByLabelText('Title');
+      const titleInput = screen.getByLabelText('Event Title');
       fireEvent.change(titleInput, { target: { value: 'Updated Title' } });
       
       // Submit form - use the actual button text in the component
@@ -150,32 +140,14 @@ describe('EditEventModal', () => {
     });
 
     await waitFor(() => {
-      expect(global.fetch).toHaveBeenCalledWith(`/api/events/${mockEvent._id}`, expect.any(Object));
+      expect(localStorage.updateEvent).toHaveBeenCalledWith(mockEvent._id, expect.any(Object));
       expect(mockOnEventUpdated).toHaveBeenCalledWith(mockUpdatedEvent);
     });
   });
 
   it('handles deletion and calls onEventDeleted', async () => {
     (window.confirm as jest.Mock).mockReturnValue(true);
-    
-    (global.fetch as jest.Mock).mockImplementation((url, options) => {
-      if (url.includes(`/api/events/${mockEvent._id}`) && options.method === 'DELETE') {
-        return Promise.resolve({
-          ok: true,
-          json: () => Promise.resolve({ success: true }),
-        });
-      }
-      if (url.includes('/api/media?eventId=')) {
-        return Promise.resolve({
-          ok: true,
-          json: () => Promise.resolve(mockMediaItems),
-        });
-      }
-      return Promise.resolve({
-        ok: true,
-        json: () => Promise.resolve({}),
-      });
-    });
+    (localStorage.deleteEvent as jest.Mock).mockReturnValue(true);
 
     render(
       <EditEventModal
@@ -188,12 +160,12 @@ describe('EditEventModal', () => {
     );
 
     await waitFor(() => {
-      fireEvent.click(screen.getByText('Delete'));
+      fireEvent.click(screen.getByText('Delete Event'));
     });
 
     await waitFor(() => {
       expect(window.confirm).toHaveBeenCalled();
-      expect(global.fetch).toHaveBeenCalledWith(`/api/events/${mockEvent._id}`, expect.any(Object));
+      expect(localStorage.deleteEvent).toHaveBeenCalledWith(mockEvent._id);
       expect(mockOnEventDeleted).toHaveBeenCalledWith(mockEvent._id);
       expect(mockOnClose).toHaveBeenCalled();
     });
@@ -201,25 +173,7 @@ describe('EditEventModal', () => {
 
   it('displays error message when update fails', async () => {
     const errorMessage = 'Failed to update event';
-    
-    (global.fetch as jest.Mock).mockImplementation((url, options) => {
-      if (url.includes(`/api/events/${mockEvent._id}`) && options.method === 'PUT') {
-        return Promise.resolve({
-          ok: false,
-          json: () => Promise.resolve({ message: errorMessage }),
-        });
-      }
-      if (url.includes('/api/media?eventId=')) {
-        return Promise.resolve({
-          ok: true,
-          json: () => Promise.resolve(mockMediaItems),
-        });
-      }
-      return Promise.resolve({
-        ok: true,
-        json: () => Promise.resolve({}),
-      });
-    });
+    (localStorage.updateEvent as jest.Mock).mockReturnValue(null);
 
     render(
       <EditEventModal

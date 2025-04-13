@@ -12,8 +12,6 @@ declare namespace JSX {
 // Define the FC type for our components
 type FC<P = {}> = React.FunctionComponent<P>;
 
-// Type definitions for React and Next.js compatibility
-
 // Define the React namespace
 declare namespace React {
   type ReactNode = 
@@ -67,10 +65,10 @@ declare namespace React {
     children?: ReactNode;
   }
   
-  // React hook signatures
-  function useState<T>(initialState: T | (() => T)): [T, (newState: T | ((prevState: T) => T)) => void];
-  function useEffect(effect: () => void | (() => void), deps?: any[]): void;
-  function forwardRef<T, P = {}>(render: (props: P, ref: React.Ref<T>) => React.ReactElement | null): (props: P & { ref?: React.Ref<T> }) => React.ReactElement | null;
+  // React hook signatures - Adding proper exports to fix errors
+  export function useState<T>(initialState: T | (() => T)): [T, (newState: T | ((prevState: T) => T)) => void];
+  export function useEffect(effect: () => void | (() => void), deps?: any[]): void;
+  export function forwardRef<T, P = {}>(render: (props: P, ref: React.Ref<T>) => React.ReactElement | null): (props: P & { ref?: React.Ref<T> }) => React.ReactElement | null;
 }
 
 // Fix event handlers
@@ -84,6 +82,10 @@ interface Event {
   description: string;
   date: string;
   mediaIds: string[];
+  commentIds?: string[];
+  createdAt: string;
+  updatedAt: string;
+  relationshipId?: string | null;
 }
 
 // Extend modules for component props
@@ -109,8 +111,20 @@ declare module 'next' {
   }
 }
 
+// Add Jest test types
+declare namespace jest {
+  interface Matchers<R> {
+    toEqual(expected: any): R;
+    toBeTruthy(): R;
+    toHaveTextContent(text: string): R;
+  }
+  interface Expect {
+    any(constructor: any): any;
+  }
+}
+
 // For libraries without type definitions
-declare namespace React {
+declare module 'react' {
   export interface FunctionComponent<P = {}> {
     (props: P, context?: any): React.ReactElement<any, any> | null;
     displayName?: string;
@@ -252,32 +266,9 @@ declare namespace React {
   }
 }
 
-declare module 'react' {
-  export = React;
-}
-
-declare module 'next/image' {
-  export default function Image(props: any): JSX.Element;
-}
-
-declare module 'next/link' {
-  export default function Link(props: any): JSX.Element;
-}
-
-declare module 'date-fns' {
-  export function format(date: Date, format: string): string;
-}
-
 // Import the types from the existing types.d.ts
 import * as React from 'react';
 import 'next';
-
-// Extend Next.js types to accept React nodes in children
-declare module 'next' {
-  export interface LayoutProps {
-    children: React.ReactNode;
-  }
-}
 
 // Declare JSX namespace for proper element handling in Next.js
 declare namespace JSX {
@@ -286,20 +277,4 @@ declare namespace JSX {
     head: React.DetailedHTMLProps<React.HeadHTMLAttributes<HTMLHeadElement>, HTMLHeadElement>;
     body: React.DetailedHTMLProps<React.BodyHTMLAttributes<HTMLBodyElement>, HTMLBodyElement>;
   }
-}
-
-// Declare Module to fix toaster component
-declare module '@/components/ui/Toaster' {
-  export function Toaster(): JSX.Element;
-}
-
-// This allows TypeScript to import CSS modules
-declare module '*.module.css' {
-  const classes: { [key: string]: string };
-  export default classes;
-}
-
-declare module '*.module.scss' {
-  const classes: { [key: string]: string };
-  export default classes;
 } 

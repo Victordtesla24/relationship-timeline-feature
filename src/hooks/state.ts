@@ -1,14 +1,22 @@
-// This file exports React hooks and fixes TypeScript errors
+// This file exports React hooks with proper TypeScript typing
 import React from 'react';
 
-// Use type assertions to work around TypeScript issues
-// @ts-ignore - Handle useState
+/**
+ * Properly typed React hooks for consistent usage across the application
+ * without TypeScript errors during build time
+ */
+
+// Typed version of useState
 export const useState: typeof React.useState = React.useState;
-// @ts-ignore - Handle useEffect
+
+// Typed version of useEffect
 export const useEffect: typeof React.useEffect = React.useEffect;
-// @ts-ignore - Handle useCallback
+
+// Typed version of useCallback
 export const useCallback: typeof React.useCallback = React.useCallback;
-// @ts-ignore - Handle useMemo
+
+// Typed version of useMemo
 export const useMemo: typeof React.useMemo = React.useMemo;
-// @ts-ignore - Handle useRef
+
+// Typed version of useRef
 export const useRef: typeof React.useRef = React.useRef; 

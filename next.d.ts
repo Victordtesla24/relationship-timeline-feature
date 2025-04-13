@@ -102,13 +102,8 @@ declare module 'next' {
   }
 }
 
-// Add missing modules
+// Add missing modules - changing names to avoid conflicts
 declare module '@/components/ui/Toaster' {
   export function Toaster(): JSX.Element;
-  export const toaster: any;
+  export const toastService: any;
 }
-
-declare module '@/components/ui/Button' {
-  const Button: (props: any) => JSX.Element;
-  export default Button;
-} 

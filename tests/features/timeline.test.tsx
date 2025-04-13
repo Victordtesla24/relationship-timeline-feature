@@ -28,7 +28,12 @@ describe('Timeline Feature', () => {
 
   it('renders timeline page with all components', async () => {
     // Use 'as any' to avoid TypeScript errors with ReactElement
-    const { container } = render(await TimelinePage() as any);
+    const mockProps = {
+      params: {},
+      searchParams: {}
+    };
+    
+    render(await TimelinePage(mockProps) as any);
     
     // Check that all components are rendered
     expect(screen.getByTestId('dashboard-header')).toBeInTheDocument();
@@ -48,7 +53,12 @@ describe('Timeline Feature Integration', () => {
     // This would be implemented in an end-to-end test using Cypress or Playwright
     // Since we're mocking components in this test suite, we'll just verify the structure
     
-    render(await TimelinePage() as any);
+    const mockProps = {
+      params: {},
+      searchParams: { relationshipId: 'test-relationship-id' }
+    };
+    
+    render(await TimelinePage(mockProps) as any);
     
     // The actual integration test would verify:
     // 1. Timeline component makes a fetch request for events

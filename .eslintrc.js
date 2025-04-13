@@ -8,16 +8,19 @@ module.exports = {
     "@typescript-eslint"
   ],
   "rules": {
-    "@typescript-eslint/no-explicit-any": "off",
+    "@typescript-eslint/no-explicit-any": "warn",
     "react/display-name": "off",
     "react/no-unescaped-entities": "off",
-    "@typescript-eslint/no-unused-vars": "off",
-    "@typescript-eslint/ban-ts-comment": "off",
+    "@typescript-eslint/no-unused-vars": "warn",
+    "@typescript-eslint/ban-ts-comment": "warn",
     "@typescript-eslint/no-non-null-assertion": "off",
     "@typescript-eslint/ban-types": "off",
-    "react-hooks/exhaustive-deps": "off",
-    "no-var": "off",
-    "@next/next/no-img-element": "off"
+    "react-hooks/exhaustive-deps": "warn",
+    "no-var": "warn",
+    "@next/next/no-img-element": "off",
+    "react/jsx-key": "error",
+    "jsx-a11y/alt-text": "warn",
+    "no-console": ["warn", { "allow": ["warn", "error"] }]
   },
   "ignorePatterns": [
     "node_modules/",
@@ -30,7 +33,8 @@ module.exports = {
     {
       "files": ["**/*.test.tsx", "**/*.test.ts", "**/tests/**/*"],
       "rules": {
-        "@typescript-eslint/no-empty-function": "off"
+        "@typescript-eslint/no-empty-function": "off",
+        "no-console": "off"
       }
     }
   ]

@@ -5,7 +5,6 @@ import { useStateCompat, useRefCompat } from '@/utils/react-compat';
 import { createMedia, deleteMedia } from '@/utils/localStorage';
 
 // Type assertion to work around React type conflicts
-const ReactCompat = React as any;
 
 interface Media {
   _id: string;
@@ -14,6 +13,7 @@ interface Media {
   name: string;
   eventId: string;
   createdAt: string;
+  filename?: string;
 }
 
 interface MediaUploaderProps {
@@ -168,7 +168,7 @@ export default function MediaUploader({
                   rel="noopener noreferrer"
                   className="text-blue-600 hover:underline"
                 >
-                  {item.name}
+                  {item.name || item.filename}
                 </a>
               </div>
               <button 

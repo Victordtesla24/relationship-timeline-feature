@@ -1,6 +1,7 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+// Import React directly to avoid TypeScript errors
+import React from 'react';
 
 interface Toast {
   id: string;
@@ -18,7 +19,7 @@ let listeners: ((state: ToastState) => void)[] = [];
 let toastState: ToastState = { toasts: [] };
 
 // Create toast service without exporting directly
-const toastService = {
+const toastManager = {
   toast: (props: Omit<Toast, 'id'>) => {
     const id = Math.random().toString(36).substring(2, 9);
     const toast = { id, ...props };
@@ -31,7 +32,7 @@ const toastService = {
     
     // Auto-dismiss after 5 seconds
     setTimeout(() => {
-      toastService.dismiss(id);
+      toastManager.dismiss(id);
     }, 5000);
     
     return id;
@@ -48,9 +49,9 @@ const toastService = {
 
 // Simple Toaster component
 function Toaster() {
-  const [state, setState] = useState<ToastState>({ toasts: [] });
+  const [state, setState] = React.useState<ToastState>({ toasts: [] });
   
-  useEffect(() => {
+  React.useEffect(() => {
     listeners.push(setState);
     
     return () => {
@@ -81,7 +82,7 @@ function Toaster() {
               )}
             </div>
             <button 
-              onClick={() => toastService.dismiss(toast.id)}
+              onClick={() => toastManager.dismiss(toast.id)}
               className="text-gray-500 hover:text-gray-700"
             >
               ×
@@ -93,6 +94,5 @@ function Toaster() {
   );
 }
 
-// Export components cleanly
-const toaster = toastService;
-export { toaster, Toaster }; 
+// Export with different names to avoid conflicts
+export { toastManager, Toaster }; 

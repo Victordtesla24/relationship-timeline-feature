@@ -1,5 +1,5 @@
 import React from 'react';
-import { render, screen, fireEvent } from '@testing-library/react';
+import { render, screen } from '@testing-library/react';
 import DashboardHeader from '@/components/dashboard/DashboardHeader';
 import '@testing-library/jest-dom';
 
