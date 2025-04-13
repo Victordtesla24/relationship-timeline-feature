@@ -5,21 +5,15 @@
 
 import React from 'react';
 import Link from 'next/link';
-import { useSession } from 'next-auth/react';
 import EventCard from '@/components/timeline/EventCard';
 import AddEventModal from '@/components/timeline/AddEventModal';
+import { Event, getEvents } from '@/utils/localStorage';
 
-interface Event {
-  _id: string;
-  title: string;
-  description: string;
-  date: string;
-  mediaIds: string[];
-  userId: string;
+interface TimelineProps {
+  relationshipId?: string;
 }
 
-export default function Timeline() {
-  const { data: session } = useSession();
+export default function Timeline({ relationshipId }: TimelineProps = {}) {
   // @ts-ignore - using useState directly from React object due to import errors
   const [events, setEvents] = React.useState<Event[]>([]);
   // @ts-ignore - using useState directly from React object due to import errors
@@ -33,18 +27,17 @@ export default function Timeline() {
   React.useEffect(() => {
     async function fetchEvents() {
       try {
-        const response = await fetch('/api/events');
+        // Get events directly from localStorage
+        const allEvents = getEvents();
         
-        if (!response.ok) {
-          throw new Error('Failed to fetch events');
-        }
-        
-        const data = await response.json();
-        setEvents(data.sort((a: Event, b: Event) => 
+        // Sort events by date
+        const sortedEvents = allEvents.sort((a: Event, b: Event) => 
           new Date(a.date).getTime() - new Date(b.date).getTime()
-        ));
+        );
+        
+        setEvents(sortedEvents);
       } catch (err: any) {
-        setError(err.message);
+        setError(err.message || 'Error loading events');
       } finally {
         setIsLoading(false);
       }
@@ -108,7 +101,7 @@ export default function Timeline() {
   }
 
   return (
-    <div className="py-4">
+    <div className="py-4" data-testid="timeline">
       <div className="flex justify-end mb-6">
         <button
           onClick={() => setIsAddEventModalOpen(true)}
@@ -148,6 +141,7 @@ export default function Timeline() {
           isOpen={isAddEventModalOpen} 
           onClose={() => setIsAddEventModalOpen(false)} 
           onEventAdded={handleEventAdded}
+          relationshipId={relationshipId}
         />
       )}
     </div>

@@ -111,9 +111,4 @@ declare module '@/components/ui/Toaster' {
 declare module '@/components/ui/Button' {
   const Button: (props: any) => JSX.Element;
   export default Button;
-}
-
-declare module '@/components/auth/AuthProvider' {
-  const AuthProvider: (props: { children: any }) => JSX.Element;
-  export default AuthProvider;
 } 

@@ -23,8 +23,7 @@ jest.mock('@/components/timeline/AddEventModal', () => {
             title: 'New Event', 
             description: 'Test Description', 
             date: '2023-01-01', 
-            mediaIds: [], 
-            userId: 'user1' 
+            mediaIds: []
           })}
         >
           Add Event
@@ -66,8 +65,8 @@ describe('Timeline Component', () => {
 
   it('renders events when they are returned from API', async () => {
     const mockEvents = [
-      { _id: '1', title: 'Event 1', description: 'Description 1', date: '2023-01-01', mediaIds: [], userId: 'user1' },
-      { _id: '2', title: 'Event 2', description: 'Description 2', date: '2023-02-01', mediaIds: [], userId: 'user1' },
+      { _id: '1', title: 'Event 1', description: 'Description 1', date: '2023-01-01', mediaIds: [] },
+      { _id: '2', title: 'Event 2', description: 'Description 2', date: '2023-02-01', mediaIds: [] },
     ];
     
     (global.fetch as jest.Mock).mockResolvedValueOnce({

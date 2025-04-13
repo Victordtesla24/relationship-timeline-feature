@@ -6,12 +6,15 @@
 import React from 'react';
 import { format } from 'date-fns';
 import MediaUploader from './MediaUploader';
+import { updateEvent, deleteEvent, getMediaItems, Event as StorageEvent } from '@/utils/localStorage';
 
 interface Media {
   _id: string;
   url: string;
-  type: 'image' | 'document';
-  filename: string;
+  type: string;
+  name: string;
+  eventId: string;
+  createdAt: string;
 }
 
 interface Event {
@@ -20,7 +23,6 @@ interface Event {
   description: string;
   date: string;
   mediaIds: string[];
-  userId: string;
 }
 
 interface EditEventModalProps {
@@ -71,11 +73,9 @@ export default function EditEventModal({
 
   const fetchMediaItems = async () => {
     try {
-      const response = await fetch(`/api/media?eventId=${event._id}`);
-      if (response.ok) {
-        const data = await response.json();
-        setMediaItems(data);
-      }
+      // Get media items directly from localStorage
+      const media = getMediaItems(event._id);
+      setMediaItems(media);
     } catch (err) {
       console.error('Error fetching media items:', err);
     }
@@ -91,32 +91,28 @@ export default function EditEventModal({
     setIsSubmitting(true);
     setError('');
 
-    fetch(`/api/events/${event._id}`, {
-      method: 'PUT',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(formData),
-    })
-      .then(response => {
-        if (!response.ok) {
-          return response.json().then(data => {
-            throw new Error(data.message || 'Failed to update event');
-          });
-        }
-        return response.json();
-      })
-      .then(updatedEvent => {
-        if (onEventUpdated) {
-          onEventUpdated(updatedEvent);
-        }
-      })
-      .catch(err => {
-        setError(err.message || 'An error occurred while updating the event');
-      })
-      .finally(() => {
-        setIsSubmitting(false);
+    try {
+      // Update event directly in localStorage
+      const updatedEvent = updateEvent(event._id, {
+        title: formData.title,
+        description: formData.description,
+        date: formData.date,
+        mediaIds: event.mediaIds,
       });
+
+      if (!updatedEvent) {
+        throw new Error('Failed to update event');
+      }
+
+      if (onEventUpdated) {
+        onEventUpdated(updatedEvent);
+      }
+      
+      onClose();
+    } catch (err: any) {
+      setError(err.message || 'An error occurred while updating the event');
+      setIsSubmitting(false);
+    }
   };
 
   const handleDelete = () => {
@@ -127,28 +123,23 @@ export default function EditEventModal({
     setIsSubmitting(true);
     setError('');
 
-    fetch(`/api/events/${event._id}`, {
-      method: 'DELETE',
-    })
-      .then(response => {
-        if (!response.ok) {
-          return response.json().then(data => {
-            throw new Error(data.message || 'Failed to delete event');
-          });
-        }
-        
-        if (onEventDeleted) {
-          onEventDeleted(event._id);
-        }
-        
-        onClose();
-      })
-      .catch(err => {
-        setError(err.message || 'An error occurred while deleting the event');
-      })
-      .finally(() => {
-        setIsSubmitting(false);
-      });
+    try {
+      // Delete event directly from localStorage
+      const success = deleteEvent(event._id);
+      
+      if (!success) {
+        throw new Error('Failed to delete event');
+      }
+      
+      if (onEventDeleted) {
+        onEventDeleted(event._id);
+      }
+      
+      onClose();
+    } catch (err: any) {
+      setError(err.message || 'An error occurred while deleting the event');
+      setIsSubmitting(false);
+    }
   };
   
   const handleMediaAdded = (media: Media) => {
@@ -204,7 +195,7 @@ export default function EditEventModal({
               />
             </div>
             
-            <div className="mb-6">
+            <div className="mb-4">
               <label htmlFor="description" className="block text-gray-700 font-medium mb-2">
                 Description
               </label>
@@ -219,7 +210,7 @@ export default function EditEventModal({
               />
             </div>
             
-            <div className="mb-6">
+            <div className="mb-4">
               <MediaUploader
                 eventId={event._id}
                 mediaItems={mediaItems}
@@ -228,13 +219,14 @@ export default function EditEventModal({
               />
             </div>
             
-            <div className="flex justify-between">
+            <div className="flex justify-between mt-6">
               <button
                 type="button"
                 onClick={handleDelete}
                 className="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 disabled:opacity-50"
+                disabled={isSubmitting}
               >
-                Delete
+                {isSubmitting ? 'Deleting...' : 'Delete Event'}
               </button>
               
               <div className="flex space-x-3">
@@ -245,6 +237,7 @@ export default function EditEventModal({
                 >
                   Cancel
                 </button>
+                
                 <button
                   type="submit"
                   disabled={isSubmitting}

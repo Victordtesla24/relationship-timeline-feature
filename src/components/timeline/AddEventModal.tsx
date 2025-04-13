@@ -6,6 +6,7 @@
 import React from 'react';
 import { format } from 'date-fns';
 import MediaUploader from './MediaUploader';
+import { createEvent, Event as StorageEvent } from '@/utils/localStorage';
 
 interface Media {
   _id: string;
@@ -20,21 +21,23 @@ interface Event {
   description: string;
   date: string;
   mediaIds: string[];
-  userId: string;
+  relationshipId?: string;
 }
 
 interface AddEventModalProps {
   isOpen: boolean;
   onClose: () => void;
   onEventAdded?: (event: Event) => void;
+  relationshipId?: string;
 }
 
-export default function AddEventModal({ isOpen, onClose, onEventAdded }: AddEventModalProps) {
+export default function AddEventModal({ isOpen, onClose, onEventAdded, relationshipId }: AddEventModalProps) {
   // @ts-ignore - using useState directly from React object due to import errors
   const [formData, setFormData] = React.useState({
     title: '',
     description: '',
     date: format(new Date(), 'yyyy-MM-dd'),
+    relationshipId: relationshipId || null,
   });
   
   // @ts-ignore - using useState directly from React object due to import errors
@@ -52,6 +55,14 @@ export default function AddEventModal({ isOpen, onClose, onEventAdded }: AddEven
   // @ts-ignore - using useState directly from React object due to import errors
   const [tempEventId, setTempEventId] = React.useState<string>(`temp-${Date.now()}`);
 
+  // Update formData if relationshipId prop changes
+  // @ts-ignore - using useEffect directly from React object due to import errors
+  React.useEffect(() => {
+    if (relationshipId) {
+      setFormData(prev => ({ ...prev, relationshipId }));
+    }
+  }, [relationshipId]);
+
   const handleChange = (e: any) => {
     const { name, value } = e.target;
     setFormData((prev: any) => ({ ...prev, [name]: value }));
@@ -62,47 +73,35 @@ export default function AddEventModal({ isOpen, onClose, onEventAdded }: AddEven
     setIsSubmitting(true);
     setError('');
 
-    fetch('/api/events', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(formData),
-    })
-      .then(response => {
-        if (!response.ok) {
-          return response.json().then(data => {
-            throw new Error(data.message || 'Failed to create event');
-          });
-        }
-        return response.json();
-      })
-      .then(newEvent => {
-        setNewEventId(newEvent._id);
-        
-        // If we have temporary media items, attach them to the real event
-        if (mediaItems.length > 0) {
-          // Update the frontend immediately
-          if (onEventAdded) {
-            // Need to give it the new event ID for reference
-            onEventAdded({
-              ...newEvent,
-              mediaIds: mediaItems.map(m => m._id)
-            });
-          }
-        } else {
-          if (onEventAdded) {
-            onEventAdded(newEvent);
-          }
-          onClose();
-        }
-      })
-      .catch(err => {
-        setError(err.message || 'An error occurred while creating the event');
-      })
-      .finally(() => {
-        setIsSubmitting(false);
+    try {
+      // Create event directly in localStorage
+      const newEvent = createEvent({
+        title: formData.title,
+        description: formData.description,
+        date: formData.date,
+        mediaIds: mediaItems.map(m => m._id),
       });
+
+      setNewEventId(newEvent._id);
+      
+      // If we have media items
+      if (mediaItems.length > 0) {
+        // Update the frontend immediately
+        if (onEventAdded) {
+          onEventAdded(newEvent);
+        }
+      } else {
+        if (onEventAdded) {
+          onEventAdded(newEvent);
+        }
+      }
+      
+      // Close the modal
+      onClose();
+    } catch (err: any) {
+      setError(err.message || 'An error occurred while creating the event');
+      setIsSubmitting(false);
+    }
   };
   
   const handleMediaAdded = (media: Media) => {
@@ -119,6 +118,7 @@ export default function AddEventModal({ isOpen, onClose, onEventAdded }: AddEven
       title: '',
       description: '',
       date: format(new Date(), 'yyyy-MM-dd'),
+      relationshipId: relationshipId || null,
     });
     setNewEventId(null);
     setMediaItems([]);

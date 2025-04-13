@@ -14,19 +14,14 @@ const customJestConfig = {
   testPathIgnorePatterns: ['/node_modules/', '/.next/'],
   // Transform more node_modules that use ESM
   transformIgnorePatterns: [
-    '/node_modules/(?!(.pnpm/)?(jose|openid-client|uuid|nanoid|react-dnd-html5-backend|next-auth|@next-auth|superjson|date-fns|@date-io))',
+    '/node_modules/(?!(.pnpm/)?(uuid|nanoid|date-fns|@date-io))',
   ],
   moduleNameMapper: {
     '^@/(.*)$': '<rootDir>/src/$1',
   },
   setupFiles: ['<rootDir>/tests/setupGlobals.js'],
   testEnvironmentOptions: {
-    SUPPRESS_JEST_WARNINGS: false,
     url: 'http://localhost/'
-  },
-  // Include this to suppress mongoose warnings
-  globals: {
-    SUPPRESS_JEST_WARNINGS: false
   }
 };
 

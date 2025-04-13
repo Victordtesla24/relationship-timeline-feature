@@ -1,12 +1,6 @@
 import React from 'react';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
-import { useSession } from 'next-auth/react';
 import ExportTimeline from '@/components/export/ExportTimeline';
-
-// Mock useSession
-jest.mock('next-auth/react', () => ({
-  useSession: jest.fn(),
-}));
 
 // Mock fetch API
 global.fetch = jest.fn();
@@ -14,17 +8,6 @@ global.fetch = jest.fn();
 describe('Timeline Export Feature', () => {
   beforeEach(() => {
     jest.clearAllMocks();
-    (useSession as jest.Mock).mockReturnValue({
-      data: {
-        user: {
-          id: 'user-1',
-          name: 'Test User',
-          email: 'test@example.com',
-          role: 'client',
-        },
-      },
-      status: 'authenticated',
-    });
     (global.fetch as jest.Mock).mockResolvedValue({
       ok: true,
       blob: () => Promise.resolve(new Blob(['test'], { type: 'application/pdf' })),
@@ -35,7 +18,6 @@ describe('Timeline Export Feature', () => {
     render(<ExportTimeline format="pdf" />);
     
     expect(screen.getByText('Export Timeline')).toBeInTheDocument();
-    expect(screen.getByText('User: Test User')).toBeInTheDocument();
     expect(screen.getByText('Export as PDF')).toBeInTheDocument();
   });
 
@@ -83,42 +65,5 @@ describe('Timeline Export Feature', () => {
     
     // Restore the original console.error
     console.error = originalConsoleError;
-  });
-});
-
-// Test the role-based access for export functionality
-describe('Export Access Control', () => {
-  it('allows client users to export their timeline', () => {
-    (useSession as jest.Mock).mockReturnValue({
-      data: {
-        user: {
-          id: 'user-1',
-          name: 'Test Client',
-          email: 'client@example.com',
-          role: 'client',
-        },
-      },
-      status: 'authenticated',
-    });
-    
-    render(<ExportTimeline format="pdf" />);
-    expect(screen.getByText('Export as PDF')).toBeInTheDocument();
-  });
-
-  it('allows lawyer users to export their clients\' timeline', () => {
-    (useSession as jest.Mock).mockReturnValue({
-      data: {
-        user: {
-          id: 'lawyer-1',
-          name: 'Test Lawyer',
-          email: 'lawyer@example.com',
-          role: 'lawyer',
-        },
-      },
-      status: 'authenticated',
-    });
-    
-    render(<ExportTimeline format="pdf" />);
-    expect(screen.getByText('Export as PDF')).toBeInTheDocument();
   });
 }); 

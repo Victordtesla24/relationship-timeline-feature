@@ -12,7 +12,7 @@ export default function Home() {
               </h1>
               <div className="w-24 h-1 bg-primary-600 mb-8"></div>
               <p className="text-xl text-gray-600 max-w-2xl">
-                Document, organize, and share your relationship timeline with professional support from your legal counsel.
+                Document, organize, and share your relationship timeline.
               </p>
             </div>
 
@@ -55,10 +55,10 @@ export default function Home() {
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 8h2a2 2 0 012 2v6a2 2 0 01-2 2h-2v4l-4-4H9a1.994 1.994 0 01-1.414-.586m0 0L11 14h4a2 2 0 002-2V6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2v4l.586-.586z" />
                       </svg>
                     </div>
-                    <h3 className="text-xl font-semibold text-gray-900">Legal Collaboration</h3>
+                    <h3 className="text-xl font-semibold text-gray-900">Relationship Management</h3>
                   </div>
                   <p className="text-gray-600">
-                    Share your timeline with your legal counsel for professional advice and documentation.
+                    Organize events by relationship and track multiple relationship timelines.
                   </p>
                 </div>
 
@@ -72,7 +72,7 @@ export default function Home() {
                     <h3 className="text-xl font-semibold text-gray-900">Professional Export</h3>
                   </div>
                   <p className="text-gray-600">
-                    Export your timeline as a PDF or Word document for official records and legal proceedings.
+                    Export your timeline as a PDF or Word document for your records.
                   </p>
                 </div>
               </div>
@@ -80,7 +80,7 @@ export default function Home() {
 
             <div className="mt-16 flex justify-center">
               <Link
-                href="/login"
+                href="/timeline"
                 className="inline-flex items-center justify-center px-8 py-4 text-base font-medium text-white bg-primary-600 border border-transparent rounded-md shadow-sm hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500"
               >
                 Get Started
@@ -96,19 +96,8 @@ export default function Home() {
             <div className="mb-4 md:mb-0">
               <h2 className="text-xl font-bold">Relationship Timeline</h2>
             </div>
-            <div className="flex space-x-4">
-              <Link href="/privacy" className="text-gray-400 hover:text-white">
-                Privacy
-              </Link>
-              <Link href="/terms" className="text-gray-400 hover:text-white">
-                Terms
-              </Link>
-              <Link href="/contact" className="text-gray-400 hover:text-white">
-                Contact
-              </Link>
-            </div>
           </div>
-          <div className="mt-4 border-t border-gray-800 pt-4 text-center text-gray-500">
+          <div className="mt-4 pt-4 text-center text-gray-500">
             <p>© {new Date().getFullYear()} Relationship Timeline App. All rights reserved.</p>
           </div>
         </div>

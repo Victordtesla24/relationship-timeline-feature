@@ -1,10 +1,6 @@
 import React from 'react';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import MediaUploader from '@/components/timeline/MediaUploader';
-import { useSession } from 'next-auth/react';
-
-// Mock next-auth
-jest.mock('next-auth/react');
 
 // Mock fetch API
 global.fetch = jest.fn();
@@ -12,19 +8,6 @@ global.fetch = jest.fn();
 describe('MediaUploader Component', () => {
   beforeEach(() => {
     jest.clearAllMocks();
-    
-    // Mock authenticated session
-    (useSession as jest.Mock).mockReturnValue({
-      data: { 
-        user: { 
-          id: 'user-1',
-          name: 'Test User',
-          email: 'test@example.com',
-          role: 'client'
-        }
-      },
-      status: 'authenticated'
-    });
   });
   
   it('renders the uploader correctly', () => {

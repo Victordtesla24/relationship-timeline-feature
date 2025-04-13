@@ -1,44 +1,6 @@
 import React from 'react';
 import { render, screen, waitFor, fireEvent } from '@testing-library/react';
 import Timeline from '@/components/timeline/Timeline';
-import { useSession } from 'next-auth/react';
-
-// Mock next-auth session
-jest.mock('next-auth/react', () => ({
-  useSession: jest.fn(),
-}));
-
-// Mock the components used by Timeline
-jest.mock('@/components/timeline/EventCard', () => {
-  return function MockEventCard({ event, index }: { event: any; index: number }) {
-    return <div data-testid={`event-card-${index}`}>{event.title}</div>;
-  };
-});
-
-jest.mock('@/components/timeline/AddEventModal', () => {
-  return function MockAddEventModal({ isOpen, onClose, onEventAdded }: any) {
-    return isOpen ? (
-      <div data-testid="add-event-modal">
-        <button data-testid="close-modal" onClick={onClose}>
-          Close
-        </button>
-        <button 
-          data-testid="add-event" 
-          onClick={() => onEventAdded({ 
-            _id: 'new-event-id', 
-            title: 'New Event', 
-            description: 'Test Description', 
-            date: '2023-01-01', 
-            mediaIds: [], 
-            userId: 'user1' 
-          })}
-        >
-          Add Event
-        </button>
-      </div>
-    ) : null;
-  };
-});
 
 // Mock fetch API for events
 global.fetch = jest.fn();
@@ -46,15 +8,6 @@ global.fetch = jest.fn();
 describe('Timeline Component', () => {
   beforeEach(() => {
     jest.clearAllMocks();
-    (useSession as jest.Mock).mockReturnValue({
-      data: {
-        user: {
-          id: 'test-user-id',
-          role: 'client',
-        },
-      },
-      status: 'authenticated',
-    });
   });
 
   it('renders loading state initially', () => {
@@ -82,8 +35,8 @@ describe('Timeline Component', () => {
 
   it('renders events when they are returned from API', async () => {
     const mockEvents = [
-      { _id: '1', title: 'Event 1', description: 'Description 1', date: '2023-01-01', mediaIds: [], userId: 'user1' },
-      { _id: '2', title: 'Event 2', description: 'Description 2', date: '2023-02-01', mediaIds: [], userId: 'user1' },
+      { _id: '1', title: 'Event 1', description: 'Description 1', date: '2023-01-01', mediaIds: [] },
+      { _id: '2', title: 'Event 2', description: 'Description 2', date: '2023-02-01', mediaIds: [] },
     ];
     
     (global.fetch as jest.Mock).mockResolvedValueOnce({
@@ -152,8 +105,8 @@ describe('Timeline Component', () => {
   it('sorts events by date', async () => {
     // Events purposely out of date order
     const mockEvents = [
-      { _id: '2', title: 'Later Event', description: 'Description 2', date: '2023-02-01', mediaIds: [], userId: 'user1' },
-      { _id: '1', title: 'Earlier Event', description: 'Description 1', date: '2023-01-01', mediaIds: [], userId: 'user1' },
+      { _id: '2', title: 'Later Event', description: 'Description 2', date: '2023-02-01', mediaIds: [] },
+      { _id: '1', title: 'Earlier Event', description: 'Description 1', date: '2023-01-01', mediaIds: [] },
     ];
     
     (global.fetch as jest.Mock).mockResolvedValueOnce({

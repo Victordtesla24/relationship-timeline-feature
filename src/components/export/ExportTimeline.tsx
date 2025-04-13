@@ -1,6 +1,5 @@
 'use client';
 
-import { useSession } from 'next-auth/react';
 import { useState } from 'react';
 
 interface ExportTimelineProps {
@@ -8,7 +7,6 @@ interface ExportTimelineProps {
 }
 
 export default function ExportTimeline({ format }: ExportTimelineProps) {
-  const { data: session } = useSession();
   const [isExporting, setIsExporting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
@@ -39,10 +37,6 @@ export default function ExportTimeline({ format }: ExportTimelineProps) {
   return (
     <div className="p-6 bg-white rounded-lg shadow-md">
       <h1 className="text-2xl font-bold mb-4">Export Timeline</h1>
-      
-      {session?.user?.name && (
-        <p className="mb-6 text-gray-600">User: {session.user.name}</p>
-      )}
       
       {error && (
         <div className="bg-red-50 border-l-4 border-red-400 p-4 mb-4">

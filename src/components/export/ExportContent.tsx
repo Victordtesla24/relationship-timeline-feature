@@ -1,18 +1,20 @@
 'use client';
 
 import React from 'react';
-import { useSession } from 'next-auth/react';
-import { format } from 'date-fns';
+import { format, parseISO } from 'date-fns';
+import { getEvents, getMediaItems } from '@/utils/localStorage';
 
 interface ExportSettings {
   includeImages: boolean;
   includeDocuments: boolean;
   format: 'pdf' | 'docx' | null;
   title: string;
+  startDate: string;
+  endDate: string;
+  filterByDate: boolean;
 }
 
 export default function ExportContent() {
-  const { data: session } = useSession();
   // @ts-ignore - using useState directly from React object due to import errors
   const [isExporting, setIsExporting] = React.useState(false);
   // @ts-ignore - using useState directly from React object due to import errors
@@ -24,7 +26,10 @@ export default function ExportContent() {
     includeImages: true,
     includeDocuments: true,
     format: null,
-    title: 'Relationship Timeline'
+    title: 'Relationship Timeline',
+    startDate: format(new Date(new Date().getFullYear(), 0, 1), 'yyyy-MM-dd'), // Jan 1 of current year
+    endDate: format(new Date(), 'yyyy-MM-dd'), // Today
+    filterByDate: false
   });
   
   const handleSettingChange = (e: any) => {
@@ -53,31 +58,163 @@ export default function ExportContent() {
     setSuccess(null);
     
     try {
-      const response = await fetch(`/api/export`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify(exportSettings)
-      });
+      // Get events from localStorage
+      let events = getEvents();
       
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || 'Export failed');
+      // Filter events by date range if needed
+      if (exportSettings.filterByDate) {
+        const startDate = new Date(exportSettings.startDate).getTime();
+        const endDate = new Date(exportSettings.endDate).getTime();
+        
+        events = events.filter(event => {
+          const eventDate = new Date(event.date).getTime();
+          return eventDate >= startDate && eventDate <= endDate;
+        });
       }
       
-      // Handle file download
-      const blob = await response.blob();
-      const url = window.URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      const timestamp = format(new Date(), 'yyyy-MM-dd');
+      // Sort events by date
+      events = events.sort((a, b) => 
+        new Date(a.date).getTime() - new Date(b.date).getTime()
+      );
       
-      a.href = url;
-      a.download = `${exportSettings.title.replace(/\s+/g, '-').toLowerCase()}-${timestamp}.${exportSettings.format}`;
-      document.body.appendChild(a);
-      a.click();
-      window.URL.revokeObjectURL(url);
-      document.body.removeChild(a);
+      if (events.length === 0) {
+        throw new Error('No events found for the selected date range');
+      }
+      
+      // Use dynamic import to load the export libraries only when needed
+      if (exportSettings.format === 'pdf') {
+        const { jsPDF } = await import('jspdf');
+        const doc = new jsPDF();
+        let y = 20;
+        
+        // Add title
+        doc.setFontSize(24);
+        doc.text(exportSettings.title, 20, y);
+        y += 10;
+        
+        // Add date range if filtering
+        if (exportSettings.filterByDate) {
+          doc.setFontSize(12);
+          doc.text(`Period: ${format(new Date(exportSettings.startDate), 'MMM d, yyyy')} to ${format(new Date(exportSettings.endDate), 'MMM d, yyyy')}`, 20, y += 10);
+        }
+        
+        // Add generation date
+        doc.setFontSize(10);
+        doc.text(`Generated on: ${format(new Date(), 'MMMM d, yyyy')}`, 20, y += 10);
+        y += 10;
+        
+        // Add events
+        for (const event of events) {
+          // Add date
+          doc.setFontSize(14);
+          doc.text(format(parseISO(event.date), 'MMMM d, yyyy'), 20, y += 10);
+          
+          // Add title
+          doc.setFontSize(16);
+          doc.text(event.title, 20, y += 10);
+          
+          // Add description (with line wrapping)
+          doc.setFontSize(12);
+          const splitDescription = doc.splitTextToSize(event.description, 170);
+          doc.text(splitDescription, 20, y += 10);
+          y += (splitDescription.length * 7);
+          
+          // Add images if requested
+          if (exportSettings.includeImages && event.mediaIds.length > 0) {
+            const mediaItems = getMediaItems(event._id);
+            let imageCount = 0;
+            
+            for (const media of mediaItems) {
+              if (media.type === 'image' && imageCount < 2) { // Limit to 2 images per event
+                try {
+                  // Check if we need a new page
+                  if (y > 250) {
+                    doc.addPage();
+                    y = 20;
+                  }
+                  
+                  // Add image
+                  doc.addImage(media.url, 'JPEG', 20, y += 10, 80, 60);
+                  y += 70;
+                  imageCount++;
+                } catch (error) {
+                  console.error('Error adding image:', error);
+                }
+              }
+            }
+          }
+          
+          // Add separator
+          doc.line(20, y += 10, 190, y);
+          y += 10;
+          
+          // Check if we need a new page
+          if (y > 270) {
+            doc.addPage();
+            y = 20;
+          }
+        }
+        
+        // Save the document
+        const filename = `${exportSettings.title.replace(/\s+/g, '-').toLowerCase()}-${format(new Date(), 'yyyy-MM-dd')}.pdf`;
+        doc.save(filename);
+      } else if (exportSettings.format === 'docx') {
+        const { Document, Packer, Paragraph, TextRun } = await import('docx');
+        const { saveAs } = await import('file-saver');
+        
+        // Create document
+        const doc = new Document({
+          sections: [
+            {
+              properties: {},
+              children: [
+                new Paragraph({
+                  children: [new TextRun({ text: exportSettings.title, bold: true, size: 36 } as any)],
+                }),
+                new Paragraph({
+                  children: [new TextRun({ text: ' ' })],
+                }),
+                new Paragraph({
+                  children: [new TextRun({ text: `Generated on: ${format(new Date(), 'MMMM d, yyyy')}`, size: 24 } as any)],
+                }),
+                new Paragraph({
+                  children: [new TextRun({ text: ' ' })],
+                }),
+                ...events.flatMap(event => {
+                  const paragraphs = [
+                    new Paragraph({
+                      children: [new TextRun({ text: format(parseISO(event.date), 'MMMM d, yyyy'), italics: true, size: 24 } as any)],
+                    }),
+                    new Paragraph({
+                      children: [new TextRun({ text: event.title, bold: true, size: 28 } as any)],
+                    }),
+                    new Paragraph({
+                      children: [new TextRun({ text: event.description, size: 24 } as any)],
+                    }),
+                    new Paragraph({
+                      children: [new TextRun({ text: ' ' })],
+                    }),
+                    new Paragraph({
+                      children: [new TextRun({ text: '──────────────────────────────────' })],
+                    }),
+                    new Paragraph({
+                      children: [new TextRun({ text: ' ' })],
+                    }),
+                  ];
+                  
+                  return paragraphs;
+                }),
+              ],
+            },
+          ],
+        });
+        
+        // Generate and save document
+        const buffer = await Packer.toBuffer(doc);
+        const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' });
+        const filename = `${exportSettings.title.replace(/\s+/g, '-').toLowerCase()}-${format(new Date(), 'yyyy-MM-dd')}.docx`;
+        saveAs(blob, filename);
+      }
       
       setSuccess(`Timeline exported as ${exportSettings.format.toUpperCase()} successfully!`);
     } catch (err: any) {
@@ -118,6 +255,50 @@ export default function ExportContent() {
               onChange={handleSettingChange}
               className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
             />
+          </div>
+          
+          <div>
+            <label className="flex items-center">
+              <input
+                type="checkbox"
+                name="filterByDate"
+                checked={exportSettings.filterByDate}
+                onChange={handleSettingChange}
+                className="h-4 w-4 text-primary-600 focus:ring-primary-500 border-gray-300 rounded"
+              />
+              <span className="ml-2 text-gray-700">Filter by Date Range</span>
+            </label>
+            
+            {exportSettings.filterByDate && (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-3">
+                <div>
+                  <label htmlFor="startDate" className="block text-gray-700 font-medium mb-2">
+                    Start Date
+                  </label>
+                  <input
+                    type="date"
+                    id="startDate"
+                    name="startDate"
+                    value={exportSettings.startDate}
+                    onChange={handleSettingChange}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
+                  />
+                </div>
+                <div>
+                  <label htmlFor="endDate" className="block text-gray-700 font-medium mb-2">
+                    End Date
+                  </label>
+                  <input
+                    type="date"
+                    id="endDate"
+                    name="endDate"
+                    value={exportSettings.endDate}
+                    onChange={handleSettingChange}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
+                  />
+                </div>
+              </div>
+            )}
           </div>
           
           <div className="flex space-x-4">

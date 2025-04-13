@@ -6,23 +6,16 @@
 import React from 'react';
 import Image from 'next/image';
 import { format, parseISO } from 'date-fns';
-import { useSession } from 'next-auth/react';
 import EditEventModal from './EditEventModal';
+import { Event, getMediaItems } from '@/utils/localStorage';
 
 interface Media {
   _id: string;
   url: string;
-  type: 'image' | 'document';
-  filename: string;
-}
-
-interface Event {
-  _id: string;
-  title: string;
-  description: string;
-  date: string;
-  mediaIds: string[];
-  userId: string;
+  type: string;
+  name: string;
+  eventId: string;
+  createdAt: string;
 }
 
 interface EventCardProps {
@@ -33,8 +26,6 @@ interface EventCardProps {
 }
 
 export default function EventCard({ event, index, onEventUpdated, onEventDeleted }: EventCardProps) {
-  const { data: session } = useSession();
-  
   // @ts-ignore - using useState directly from React object due to import errors
   const [isEditModalOpen, setIsEditModalOpen] = React.useState(false);
   // @ts-ignore - using useState directly from React object due to import errors
@@ -52,11 +43,9 @@ export default function EventCard({ event, index, onEventUpdated, onEventDeleted
   const fetchMediaItems = async () => {
     try {
       setIsLoadingMedia(true);
-      const response = await fetch(`/api/media?eventId=${event._id}`);
-      if (response.ok) {
-        const data = await response.json();
-        setMediaItems(data);
-      }
+      // Get media items directly from localStorage
+      const media = getMediaItems(event._id);
+      setMediaItems(media);
     } catch (err) {
       console.error('Error fetching media items:', err);
     } finally {
@@ -89,7 +78,10 @@ export default function EventCard({ event, index, onEventUpdated, onEventDeleted
   const isEven = index % 2 === 0;
   
   return (
-    <div className={`flex items-start md:items-center justify-between md:justify-start md:justify-normal`}>
+    <div 
+      className={`flex items-start md:items-center justify-between md:justify-start md:justify-normal`}
+      data-testid={`event-card-${index}`}
+    >
       <div className={`w-10 h-10 flex-shrink-0 rounded-full bg-primary-100 border-4 border-white flex items-center justify-center z-10 ${isEven ? 'md:order-1 md:ml-6' : 'md:order-1 md:mr-6'}`}>
         <span className="text-primary-700 font-semibold text-sm">{index + 1}</span>
       </div>
@@ -119,8 +111,8 @@ export default function EventCard({ event, index, onEventUpdated, onEventDeleted
                         className="block w-24 h-24 bg-gray-100 rounded-md overflow-hidden"
                       >
                         <img 
-                          src={media.url.startsWith('/uploads/') ? `/images/placeholder-image.svg` : media.url} 
-                          alt={media.filename}
+                          src={media.url} 
+                          alt={media.name}
                           className="w-full h-full object-cover"
                           onError={(e) => {
                             // If image fails to load, set a placeholder
@@ -140,7 +132,7 @@ export default function EventCard({ event, index, onEventUpdated, onEventDeleted
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                         </svg>
                         <span className="text-xs text-gray-600 mt-1 truncate w-full text-center">
-                          {media.filename.length > 10 ? `${media.filename.substring(0, 10)}...` : media.filename}
+                          {media.name.length > 10 ? `${media.name.substring(0, 10)}...` : media.name}
                         </span>
                       </a>
                     )}

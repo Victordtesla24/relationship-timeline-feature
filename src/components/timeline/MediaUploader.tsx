@@ -1,8 +1,8 @@
 'use client';
 
 import React from 'react';
-import { useSession } from 'next-auth/react';
 import { useStateCompat, useRefCompat } from '@/utils/react-compat';
+import { createMedia, deleteMedia } from '@/utils/localStorage';
 
 // Type assertion to work around React type conflicts
 const ReactCompat = React as any;
@@ -10,8 +10,10 @@ const ReactCompat = React as any;
 interface Media {
   _id: string;
   url: string;
-  type: 'image' | 'document';
-  filename: string;
+  type: string;
+  name: string;
+  eventId: string;
+  createdAt: string;
 }
 
 interface MediaUploaderProps {
@@ -27,7 +29,6 @@ export default function MediaUploader({
   onMediaAdded,
   onMediaDeleted
 }: MediaUploaderProps) {
-  const { data: session } = useSession();
   // Use compatibility hooks to avoid TypeScript errors
   const [isUploading, setIsUploading] = useStateCompat(false);
   const [error, setError] = useStateCompat<string | null>(null);
@@ -37,7 +38,7 @@ export default function MediaUploader({
     if (!e.target.files || e.target.files.length === 0) return;
     
     const file = e.target.files[0];
-    const maxSizeInMB = 10;
+    const maxSizeInMB = 5; // Reduced size for localStorage
     const maxSizeInBytes = maxSizeInMB * 1024 * 1024;
     
     if (file.size > maxSizeInBytes) {
@@ -61,34 +62,51 @@ export default function MediaUploader({
     setError(null);
     
     try {
-      const formData = new FormData();
-      formData.append('file', file);
-      formData.append('eventId', eventId);
+      // Convert file to base64
+      const reader = new FileReader();
       
-      const response = await fetch('/api/media', {
-        method: 'POST',
-        body: formData,
-      });
+      reader.onload = (event) => {
+        try {
+          if (!event.target || typeof event.target.result !== 'string') {
+            throw new Error('Failed to read file');
+          }
+          
+          const base64Data = event.target.result;
+          
+          // Store media in localStorage
+          const newMedia = createMedia({
+            name: file.name,
+            url: base64Data,
+            type: isImage ? 'image' : 'document',
+            eventId: eventId,
+          });
+          
+          if (onMediaAdded) {
+            onMediaAdded(newMedia);
+          }
+          
+          // Reset the file input
+          if (fileInputRef.current) {
+            fileInputRef.current.value = '';
+          }
+          
+          setIsUploading(false);
+        } catch (err: any) {
+          setError(err.message || 'An error occurred during upload');
+          setIsUploading(false);
+        }
+      };
       
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || 'Upload failed');
-      }
+      reader.onerror = () => {
+        setError('Failed to read the file');
+        setIsUploading(false);
+      };
       
-      const newMedia = await response.json();
-      
-      if (onMediaAdded) {
-        onMediaAdded(newMedia);
-      }
+      reader.readAsDataURL(file);
     } catch (err: any) {
       setError(err.message || 'An error occurred during upload');
       console.error('Upload error:', err);
-    } finally {
       setIsUploading(false);
-      // Reset the file input
-      if (fileInputRef.current) {
-        fileInputRef.current.value = '';
-      }
     }
   };
 
@@ -96,13 +114,11 @@ export default function MediaUploader({
     if (!window.confirm('Are you sure you want to remove this file?')) return;
     
     try {
-      const response = await fetch(`/api/media?id=${mediaId}`, {
-        method: 'DELETE',
-      });
+      // Delete from localStorage
+      const success = deleteMedia(mediaId);
       
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || 'Deletion failed');
+      if (!success) {
+        throw new Error('Failed to delete media');
       }
       
       if (onMediaDeleted) {
@@ -152,7 +168,7 @@ export default function MediaUploader({
                   rel="noopener noreferrer"
                   className="text-blue-600 hover:underline"
                 >
-                  {item.filename}
+                  {item.name}
                 </a>
               </div>
               <button 

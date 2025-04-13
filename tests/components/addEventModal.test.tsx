@@ -62,8 +62,7 @@ describe('AddEventModal Component', () => {
       title: 'Test Event',
       description: 'Test Description',
       date: '2023-01-01',
-      mediaIds: [],
-      userId: 'user1'
+      mediaIds: []
     };
     
     (global.fetch as jest.Mock).mockResolvedValueOnce({

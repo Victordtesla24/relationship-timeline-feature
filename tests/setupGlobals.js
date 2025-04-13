@@ -17,9 +17,6 @@ if (!global.URL) {
 global.URL.createObjectURL = jest.fn(() => 'mock-blob-url');
 global.URL.revokeObjectURL = jest.fn();
 
-// Suppress Mongoose warnings
-process.env.SUPPRESS_JEST_WARNINGS = 'true';
-
 // Mock Next.js NextRequest and NextResponse
 class NextRequest extends Request {
   constructor(input, init) {
@@ -59,24 +56,37 @@ class NextRequest extends Request {
   }
 }
 
-// Mock NextResponse for API tests
-global.NextResponse = {
-  json: (body, init) => {
-    return new Response(JSON.stringify(body), {
-      status: init?.status || 200,
+// Improved NextResponse for API tests
+class NextResponseClass extends Response {
+  constructor(body, options = {}) {
+    super(body, options);
+  }
+  
+  static json(body, init = {}) {
+    const jsonBody = JSON.stringify(body);
+    return new NextResponseClass(jsonBody, {
+      ...init,
       headers: {
         'Content-Type': 'application/json',
-        ...init?.headers
+        ...(init.headers || {})
       }
     });
-  },
-  redirect: (url) => {
-    return new Response(null, {
+  }
+  
+  static redirect(url, init = {}) {
+    return new NextResponseClass(null, {
+      ...init,
       status: 302,
-      headers: { Location: url }
+      headers: {
+        ...(init.headers || {}),
+        Location: url
+      }
     });
   }
-};
+}
+
+// Add the improved NextResponse to global scope
+global.NextResponse = NextResponseClass;
 
 // Add the NextRequest to global scope
 global.NextRequest = NextRequest; 

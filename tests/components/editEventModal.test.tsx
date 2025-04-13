@@ -13,14 +13,6 @@ jest.mock('@/components/timeline/MediaUploader', () => {
   ));
 });
 
-// Mock next-auth/react
-jest.mock('next-auth/react', () => ({
-  useSession: () => ({
-    data: { user: { id: 'mock-user-id' } },
-    status: 'authenticated',
-  }),
-}));
-
 // Mock fetch for API calls
 global.fetch = jest.fn();
 
@@ -34,7 +26,6 @@ describe('EditEventModal', () => {
     description: 'Test Description',
     date: '2023-01-01T00:00:00.000Z',
     mediaIds: ['media1', 'media2'],
-    userId: 'user123',
   };
 
   const mockMediaItems = [

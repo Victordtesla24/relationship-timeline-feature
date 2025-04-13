@@ -14,7 +14,6 @@ declare namespace jest {
 }
 
 declare var global: {
-  mongoose: any;
   fetch: jest.Mock;
 };
 
@@ -45,6 +44,7 @@ declare function expect(actual: any): {
   toHaveValue(value: string): void;
   toHaveAttribute(name: string, value?: string): void;
   toBeVisible(): void;
+  toBe(expected: any): void;
   not: {
     toHaveClass(arg0: string): unknown;
     toHaveBeenCalled(): unknown;

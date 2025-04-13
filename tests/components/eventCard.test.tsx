@@ -1,13 +1,7 @@
 import React from 'react';
 import { render, screen, fireEvent } from '@testing-library/react';
 import EventCard from '@/components/timeline/EventCard';
-import { useSession } from 'next-auth/react';
 import { format } from 'date-fns';
-
-// Mock next-auth session
-jest.mock('next-auth/react', () => ({
-  useSession: jest.fn(),
-}));
 
 // Mock the fetch function
 global.fetch = jest.fn().mockImplementation(() =>
@@ -43,23 +37,7 @@ describe('EventCard Component', () => {
     description: 'This is a test event description',
     date: '2023-05-15',
     mediaIds: [],
-    userId: 'user-1',
   };
-
-  beforeEach(() => {
-    (useSession as jest.Mock).mockReturnValue({
-      data: {
-        user: {
-          id: 'user-1',
-          role: 'client',
-        },
-      },
-      status: 'authenticated',
-    });
-    
-    // Clear all mocks before each test
-    jest.clearAllMocks();
-  });
 
   it('renders event details correctly', () => {
     render(<EventCard event={mockEvent} index={0} />);

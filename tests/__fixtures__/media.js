@@ -11,7 +11,6 @@ export const mediaItems = [
     url: 'https://res.cloudinary.com/demo/image/upload/v1123456789/samples/first-meeting.jpg',
     type: 'image',
     caption: 'Our first photo together',
-    userId: clientUser._id,
     eventId: '61d0fe4f5311236168a209ca',
     createdAt: new Date('2023-02-01T00:00:00Z'),
     updatedAt: new Date('2023-02-01T00:00:00Z')
@@ -21,7 +20,6 @@ export const mediaItems = [
     url: 'https://res.cloudinary.com/demo/image/upload/v1123456790/samples/apartment-keys.jpg',
     type: 'image',
     caption: 'Keys to our new place',
-    userId: clientUser._id,
     eventId: '61d0fe4f5311236168a209cb',
     createdAt: new Date('2023-02-02T00:00:00Z'),
     updatedAt: new Date('2023-02-02T00:00:00Z')
@@ -31,21 +29,19 @@ export const mediaItems = [
     url: 'https://res.cloudinary.com/demo/video/upload/v1123456791/samples/moving-day.mp4',
     type: 'video',
     caption: 'Moving day timelapse',
-    userId: clientUser._id,
     eventId: '61d0fe4f5311236168a209cb',
     createdAt: new Date('2023-02-02T01:00:00Z'),
     updatedAt: new Date('2023-02-02T01:00:00Z')
   }
 ];
 
-// Another user's media
+// Another set of media items
 export const anotherClientMedia = [
   {
     _id: '71d0fe4f5311236168a109cd',
     url: 'https://res.cloudinary.com/demo/image/upload/v1123456792/samples/another-client-photo.jpg',
     type: 'image',
     caption: 'New Year Party',
-    userId: anotherClientUser._id,
     eventId: '61d0fe4f5311236168a209cd',
     createdAt: new Date('2023-01-02T00:00:00Z'),
     updatedAt: new Date('2023-01-02T00:00:00Z')
